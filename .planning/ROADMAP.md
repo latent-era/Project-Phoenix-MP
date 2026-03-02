@@ -72,7 +72,7 @@ See `.planning/milestones/v0.5.1-*` for archived phase details.
 
 **Cross-repo milestone.** Each phase lists the target repo(s): mobile (`Project-Phoenix-MP`) or portal (`phoenix-portal`) or both.
 
-- [x] **Phase 23: Portal DB Foundation + RLS** — Schema migrations and INSERT RLS policies that unblock every other phase *(portal)* (completed 2026-03-02)
+- [x] **Phase 23: Portal DB Foundation + RLS** — Schema migrations and INSERT RLS policies that unblock every other phase *(portal)* (completed 2026-03-02)
 - [x] **Phase 24: Supabase Auth Migration** — Replace custom JWT with GoTrue; mobile can now produce valid tokens for Edge Functions *(mobile)* (completed 2026-03-02)
 - [x] **Phase 25: Edge Functions** — Deploy mobile-sync-push and mobile-sync-pull; portal can now receive and serve workout data *(portal)* (completed 2026-03-02)
 - [ ] **Phase 26: Mobile Push Wire-Up** — SyncManager wired to PortalSyncAdapter; workouts flow from mobile to portal *(mobile)*
@@ -139,7 +139,10 @@ See `.planning/milestones/v0.5.1-*` for archived phase details.
   3. `personal_records` in the portal match the records stored in the mobile app's SQLDelight database for the same user
   4. Rep telemetry is NOT included in the main sync payload; the sync completes without body-size errors even for long workouts with many reps
   5. Gamification data (RPG attributes, earned badges, gamification stats) is present in the portal's gamification tables after a push sync from mobile
-**Plans:** TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 26-01-PLAN.md — Data access plumbing: response DTO, Edge Function API method, full-object queries, DI wiring
+- [ ] 26-02-PLAN.md — Atomic push cutover: rewrite SyncManager.pushLocalChanges() + remove Railway status check
 
 ### Phase 27: Mobile Pull Wire-Up
 **Repo:** Project-Phoenix-MP (mobile)
@@ -175,18 +178,18 @@ See `.planning/milestones/v0.5.1-*` for archived phase details.
 | v0.4.7 Mobile Platform Features | 9-12 | 13 | Complete | 2026-02-15 |
 | v0.5.0 Premium Mobile | 13-15 | 7 | Complete | 2026-02-27 |
 | v0.5.1 Board Polish & Premium UI | 16-22 | 16 | Complete | 2026-02-28 |
-| v0.6.0 Portal Sync Compatibility | 23-28 | 6/TBD | In progress | — |
+| v0.6.0 Portal Sync Compatibility | 23-28 | 10/TBD | In progress | — |
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 23. Portal DB Foundation + RLS | 3/3 | Complete   | 2026-03-02 |
 | 24. Supabase Auth Migration | 3/3 | Complete | 2026-03-02 |
 | 25. Edge Functions | 2/2 | Complete | 2026-03-02 |
-| 26. Mobile Push Wire-Up | 0/TBD | Not started | - |
+| 26. Mobile Push Wire-Up | 0/2 | Planned | - |
 | 27. Mobile Pull Wire-Up | 0/TBD | Not started | - |
 | 28. Integration Validation | 0/TBD | Not started | - |
 
 **Last phase number:** 28
 
 ---
-*Last updated: 2026-03-02 — Phase 25 complete*
+*Last updated: 2026-03-02 — Phase 26 planned (2 plans)*
