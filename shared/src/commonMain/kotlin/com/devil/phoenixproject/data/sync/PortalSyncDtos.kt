@@ -236,3 +236,164 @@ data class PortalSyncPayload(
     val badges: List<PortalEarnedBadgeSyncDto> = emptyList(),
     @SerialName("gamification_stats") val gamificationStats: PortalGamificationStatsSyncDto? = null
 )
+
+// ─── Pull Response DTOs (camelCase — NO @SerialName) ──────────────────
+//
+// The pull Edge Function returns camelCase JSON keys (e.g., "userId", "startedAt").
+// Push DTOs use @SerialName("user_id") for snake_case and CANNOT be reused.
+// These DTOs have property names matching the camelCase JSON directly.
+
+/**
+ * Response from the mobile-sync-pull Edge Function.
+ * syncTime is epoch millis (Long), NOT ISO 8601 String like the push response.
+ */
+@Serializable
+data class PortalSyncPullResponse(
+    val syncTime: Long,
+    val sessions: List<PullWorkoutSessionDto> = emptyList(), // Skipped during merge (push-only)
+    val routines: List<PullRoutineDto> = emptyList(),
+    val rpgAttributes: PullRpgAttributesDto? = null,
+    val badges: List<PullBadgeDto> = emptyList(),
+    val gamificationStats: PullGamificationStatsDto? = null
+)
+
+/**
+ * Pulled workout session — included in response but SKIPPED during merge.
+ * Sessions are immutable/push-only per PULL-03.
+ * Minimal fields to allow deserialization without error.
+ */
+@Serializable
+data class PullWorkoutSessionDto(
+    val id: String = "",
+    val userId: String = "",
+    val name: String? = null,
+    val startedAt: String? = null,
+    val durationSeconds: Int = 0,
+    val totalVolume: Float = 0f,
+    val setCount: Int = 0,
+    val exerciseCount: Int = 0,
+    val prCount: Int = 0,
+    val routineName: String? = null,
+    val workoutMode: String? = null,
+    val routineSessionId: String? = null,
+    val exercises: List<PullExerciseDto> = emptyList()
+)
+
+@Serializable
+data class PullExerciseDto(
+    val id: String = "",
+    val sessionId: String = "",
+    val name: String = "",
+    val muscleGroup: String = "General",
+    val orderIndex: Int = 0,
+    val sets: List<PullSetDto> = emptyList()
+)
+
+@Serializable
+data class PullSetDto(
+    val id: String = "",
+    val exerciseId: String = "",
+    val setNumber: Int = 0,
+    val targetReps: Int? = null,
+    val actualReps: Int = 0,
+    val weightKg: Float = 0f,
+    val rpe: Int? = null,
+    val isPr: Boolean = false,
+    val notes: String? = null,
+    val workoutMode: String? = null,
+    val repSummaries: List<PullRepSummaryDto> = emptyList()
+)
+
+@Serializable
+data class PullRepSummaryDto(
+    val id: String = "",
+    val setId: String = "",
+    val repNumber: Int = 0,
+    val meanVelocityMps: Float? = null,
+    val peakVelocityMps: Float? = null,
+    val meanForceN: Float? = null,
+    val peakForceN: Float? = null,
+    val powerWatts: Float? = null,
+    val romMm: Float? = null,
+    val tutMs: Int? = null,
+    val leftForceAvg: Float? = null,
+    val rightForceAvg: Float? = null,
+    val asymmetryPct: Float? = null,
+    val vbtZone: String? = null
+)
+
+/**
+ * Pulled routine with nested exercises.
+ */
+@Serializable
+data class PullRoutineDto(
+    val id: String,
+    val userId: String = "",
+    val name: String,
+    val description: String = "",
+    val exerciseCount: Int = 0,
+    val estimatedDuration: Int = 0,
+    val timesCompleted: Int = 0,
+    val isFavorite: Boolean = false,
+    val exercises: List<PullRoutineExerciseDto> = emptyList()
+)
+
+@Serializable
+data class PullRoutineExerciseDto(
+    val id: String,
+    val routineId: String = "",
+    val name: String = "",
+    val muscleGroup: String = "General",
+    val sets: Int = 3,
+    val reps: Int = 10,
+    val weight: Float = 0f,
+    val restSeconds: Int = 90,
+    val mode: String = "OLD_SCHOOL",
+    val orderIndex: Int = 0,
+    val supersetId: String? = null,
+    val supersetColor: String? = null,
+    val supersetOrder: Int? = null,
+    val perSetWeights: String? = null,
+    val perSetRest: String? = null,
+    val isAmrap: Boolean = false,
+    val prPercentage: Float? = null,
+    val repCountTiming: String? = null,
+    val stopAtPosition: String? = null,
+    val stallDetection: Boolean = true,
+    val eccentricLoad: String? = null,
+    val echoLevel: String? = null
+)
+
+@Serializable
+data class PullRpgAttributesDto(
+    val userId: String = "",
+    val strength: Int = 0,
+    val power: Int = 0,
+    val stamina: Int = 0,
+    val consistency: Int = 0,
+    val mastery: Int = 0,
+    val characterClass: String? = null,
+    val level: Int = 1,
+    val experiencePoints: Int = 0
+)
+
+@Serializable
+data class PullBadgeDto(
+    val userId: String = "",
+    val badgeId: String,
+    val badgeName: String = "",
+    val badgeDescription: String? = null,
+    val badgeTier: String = "bronze",
+    val earnedAt: String = "" // ISO 8601
+)
+
+@Serializable
+data class PullGamificationStatsDto(
+    val userId: String = "",
+    val totalWorkouts: Int = 0,
+    val totalReps: Int = 0,
+    val totalVolumeKg: Float = 0f,
+    val longestStreak: Int = 0,
+    val currentStreak: Int = 0,
+    val totalTimeSeconds: Int = 0
+)

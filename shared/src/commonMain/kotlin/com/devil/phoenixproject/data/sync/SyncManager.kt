@@ -5,6 +5,9 @@ import com.devil.phoenixproject.data.local.BadgeDefinitions
 import com.devil.phoenixproject.data.repository.GamificationRepository
 import com.devil.phoenixproject.data.repository.RepMetricRepository
 import com.devil.phoenixproject.data.repository.SyncRepository
+import com.devil.phoenixproject.domain.model.CharacterClass
+import com.devil.phoenixproject.domain.model.RpgProfile
+import com.devil.phoenixproject.domain.model.currentTimeMillis
 import com.devil.phoenixproject.domain.premium.RpgAttributeEngine
 import com.devil.phoenixproject.getPlatform
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,14 +87,15 @@ class SyncManager(
         val pushResponse = pushResult.getOrThrow()
         val syncTimeEpoch = kotlinx.datetime.Instant.parse(pushResponse.syncTime).toEpochMilliseconds()
 
-        // Pull is short-circuited (Railway abandoned) -- Phase 27 will wire pull to Edge Function
-        Logger.i("SyncManager") { "Pull skipped (Railway abandoned, Phase 27 TODO). Using push syncTime." }
+        // Pull remote changes (non-fatal — if pull fails, push syncTime is used)
+        val pullSyncTime = pullRemoteChanges(lastSync = tokenStorage.getLastSyncTimestamp())
+        val finalSyncTime = pullSyncTime ?: syncTimeEpoch
 
-        tokenStorage.setLastSyncTimestamp(syncTimeEpoch)
-        _lastSyncTime.value = syncTimeEpoch
-        _syncState.value = SyncState.Success(syncTimeEpoch)
+        tokenStorage.setLastSyncTimestamp(finalSyncTime)
+        _lastSyncTime.value = finalSyncTime
+        _syncState.value = SyncState.Success(finalSyncTime)
 
-        return Result.success(syncTimeEpoch)
+        return Result.success(finalSyncTime)
     }
 
     suspend fun checkStatus(): Result<SyncStatusResponse> {
@@ -186,6 +190,76 @@ class SyncManager(
         Logger.d("SyncManager") { "Pushing portal payload: ${payload.sessions.size} sessions, ${payload.routines.size} routines, ${payload.badges.size} badges" }
         return apiClient.pushPortalPayload(payload)
         // No updateServerIds() -- portal uses client-provided UUIDs
+    }
+
+    /**
+     * Pull portal data and merge into local database.
+     * Sessions are skipped (immutable/push-only per PULL-03).
+     * Returns the pull response syncTime on success, or null on failure.
+     */
+    private suspend fun pullRemoteChanges(lastSync: Long): Long? {
+        val deviceId = tokenStorage.getDeviceId()
+
+        // 1. Call pull Edge Function
+        val pullResult = apiClient.pullPortalPayload(lastSync, deviceId)
+        if (pullResult.isFailure) {
+            Logger.w("SyncManager") {
+                "Pull failed (non-fatal): ${pullResult.exceptionOrNull()?.message}"
+            }
+            return null
+        }
+
+        val pullResponse = pullResult.getOrThrow()
+        Logger.d("SyncManager") {
+            "Pull response: ${pullResponse.routines.size} routines, " +
+            "${pullResponse.badges.size} badges, " +
+            "sessions=${pullResponse.sessions.size} (skipped)"
+        }
+
+        // 2. Sessions — SKIPPED (immutable/push-only per PULL-03)
+        // pullResponse.sessions is deserialized but not merged.
+
+        // 3. Routines — merge with local preference (PULL-03)
+        if (pullResponse.routines.isNotEmpty()) {
+            syncRepository.mergePortalRoutines(pullResponse.routines, lastSync)
+            Logger.d("SyncManager") { "Merged ${pullResponse.routines.size} portal routines" }
+        }
+
+        // 4. Badges — union merge (insert if not exists)
+        if (pullResponse.badges.isNotEmpty()) {
+            val badgeDtos = pullResponse.badges.map { PortalPullAdapter.toBadgeSyncDto(it) }
+            syncRepository.mergeBadges(badgeDtos)
+            Logger.d("SyncManager") { "Merged ${pullResponse.badges.size} portal badges" }
+        }
+
+        // 5. Gamification stats — server wins (overwrite local, preserve local-only fields)
+        pullResponse.gamificationStats?.let { stats ->
+            val statsSyncDto = PortalPullAdapter.toGamificationStatsSyncDto(stats)
+            syncRepository.mergeGamificationStats(statsSyncDto)
+            Logger.d("SyncManager") { "Merged portal gamification stats" }
+        }
+
+        // 6. RPG attributes — server wins (overwrite local)
+        pullResponse.rpgAttributes?.let { rpg ->
+            val characterClass = try {
+                CharacterClass.valueOf(rpg.characterClass ?: "PHOENIX")
+            } catch (_: IllegalArgumentException) {
+                CharacterClass.PHOENIX
+            }
+            val rpgProfile = RpgProfile(
+                strength = rpg.strength,
+                power = rpg.power,
+                stamina = rpg.stamina,
+                consistency = rpg.consistency,
+                mastery = rpg.mastery,
+                characterClass = characterClass,
+                lastComputed = currentTimeMillis()
+            )
+            gamificationRepository.saveRpgProfile(rpgProfile)
+            Logger.d("SyncManager") { "Merged portal RPG attributes: ${rpg.characterClass}" }
+        }
+
+        return pullResponse.syncTime
     }
 
     private fun getPlatformName(): String {

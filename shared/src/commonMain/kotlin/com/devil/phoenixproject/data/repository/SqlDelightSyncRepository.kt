@@ -7,6 +7,8 @@ import com.devil.phoenixproject.data.sync.EarnedBadgeSyncDto
 import com.devil.phoenixproject.data.sync.GamificationStatsSyncDto
 import com.devil.phoenixproject.data.sync.IdMappings
 import com.devil.phoenixproject.data.sync.PersonalRecordSyncDto
+import com.devil.phoenixproject.data.sync.PortalPullAdapter
+import com.devil.phoenixproject.data.sync.PullRoutineDto
 import com.devil.phoenixproject.data.sync.RoutineSyncDto
 import com.devil.phoenixproject.data.sync.WorkoutSessionSyncDto
 import com.devil.phoenixproject.domain.model.EccentricLoad
@@ -377,6 +379,97 @@ class SqlDelightSyncRepository(
                 lastUpdated = now
             )
             Logger.d { "Merged gamification stats from server" }
+        }
+    }
+
+    // === Portal Pull Operations (merge portal data) ===
+
+    override suspend fun mergePortalRoutines(routines: List<PullRoutineDto>, lastSync: Long) {
+        withContext(Dispatchers.IO) {
+            db.transaction {
+                for (portalRoutine in routines) {
+                    // Check if routine exists locally
+                    val existing = queries.selectRoutineById(portalRoutine.id).executeAsOneOrNull()
+
+                    if (existing != null) {
+                        // Routine exists locally — check if it was modified since last sync
+                        val localUpdatedAt = existing.updatedAt ?: 0L
+                        if (localUpdatedAt > lastSync) {
+                            // Local version is newer — skip this portal routine (PULL-03)
+                            continue
+                        }
+                    }
+
+                    // Either doesn't exist locally or portal version is newer — upsert
+                    queries.upsertRoutine(
+                        id = portalRoutine.id,
+                        name = portalRoutine.name,
+                        description = portalRoutine.description,
+                        createdAt = existing?.createdAt ?: currentTimeMillis(),
+                        lastUsed = existing?.lastUsed,
+                        useCount = existing?.useCount ?: 0L
+                    )
+
+                    // Replace routine exercises: delete existing then insert portal versions
+                    queries.deleteRoutineExercises(portalRoutine.id)
+
+                    for (exercise in portalRoutine.exercises) {
+                        // Build setReps string: e.g., "10,10,10" for sets=3, reps=10
+                        val repsList = List(exercise.sets) {
+                            if (exercise.isAmrap && it == exercise.sets - 1) "AMRAP"
+                            else exercise.reps.toString()
+                        }
+                        val setReps = repsList.joinToString(",")
+
+                        // Convert perSetWeights JSON "[50,55,60]" to comma-separated "50.0,55.0,60.0"
+                        val setWeights = exercise.perSetWeights?.let { jsonStr ->
+                            try {
+                                val parsed = Json.decodeFromString<List<Float>>(jsonStr)
+                                parsed.joinToString(",") { it.toString() }
+                            } catch (_: Exception) { "" }
+                        } ?: ""
+
+                        // perSetRest is already JSON array format, use as setRestSeconds
+                        val setRestSeconds = exercise.perSetRest ?: "[]"
+
+                        val mobileMode = PortalPullAdapter.portalModeToMobileMode(exercise.mode)
+
+                        queries.insertRoutineExercise(
+                            id = exercise.id,
+                            routineId = portalRoutine.id,
+                            exerciseName = exercise.name,
+                            exerciseMuscleGroup = exercise.muscleGroup,
+                            exerciseEquipment = "",
+                            exerciseDefaultCableConfig = "DOUBLE",
+                            exerciseId = null, // Portal doesn't link to exercise catalog
+                            cableConfig = "DOUBLE",
+                            orderIndex = exercise.orderIndex.toLong(),
+                            setReps = setReps,
+                            weightPerCableKg = exercise.weight.toDouble(),
+                            setWeights = setWeights,
+                            mode = mobileMode,
+                            eccentricLoad = PortalPullAdapter.parseEccentricLoad(exercise.eccentricLoad),
+                            echoLevel = PortalPullAdapter.parseEchoLevel(exercise.echoLevel),
+                            progressionKg = 0.0,
+                            restSeconds = exercise.restSeconds.toLong(),
+                            duration = null,
+                            setRestSeconds = setRestSeconds,
+                            perSetRestTime = if (exercise.perSetRest != null) 1L else 0L,
+                            isAMRAP = if (exercise.isAmrap) 1L else 0L,
+                            supersetId = exercise.supersetId,
+                            orderInSuperset = (exercise.supersetOrder ?: 0).toLong(),
+                            usePercentOfPR = if (exercise.prPercentage != null) 1L else 0L,
+                            weightPercentOfPR = (exercise.prPercentage?.toInt() ?: 80).toLong(),
+                            prTypeForScaling = "MAX_WEIGHT",
+                            setWeightsPercentOfPR = null,
+                            stallDetectionEnabled = if (exercise.stallDetection) 1L else 0L,
+                            stopAtTop = if (exercise.stopAtPosition == "TOP") 1L else 0L,
+                            repCountTiming = exercise.repCountTiming ?: "TOP"
+                        )
+                    }
+                }
+            }
+            Logger.d { "Merged ${routines.size} portal routines with exercises" }
         }
     }
 

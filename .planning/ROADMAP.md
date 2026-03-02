@@ -76,7 +76,7 @@ See `.planning/milestones/v0.5.1-*` for archived phase details.
 - [x] **Phase 24: Supabase Auth Migration** — Replace custom JWT with GoTrue; mobile can now produce valid tokens for Edge Functions *(mobile)* (completed 2026-03-02)
 - [x] **Phase 25: Edge Functions** — Deploy mobile-sync-push and mobile-sync-pull; portal can now receive and serve workout data *(portal)* (completed 2026-03-02)
 - [ ] **Phase 26: Mobile Push Wire-Up** — SyncManager wired to PortalSyncAdapter; workouts flow from mobile to portal *(mobile)*
-- [ ] **Phase 27: Mobile Pull Wire-Up** — PortalPullAdapter and merge strategy; portal-created routines and badges flow to mobile *(mobile)*
+- [x] **Phase 27: Mobile Pull Wire-Up** — Pull DTOs, PortalPullAdapter, routine merge with exercises, SyncManager pull wire-up *(mobile)* (completed 2026-03-02)
 - [ ] **Phase 28: Integration Validation** — End-to-end verification of bidirectional sync across both repos *(both)*
 
 ## Phase Details
@@ -154,7 +154,10 @@ Plans:
   2. Badges awarded by the portal (e.g. from a challenge or admin grant) appear in the mobile app's RPG/gamification UI after pull sync
   3. Pull sync does not overwrite a locally-modified routine with an older portal version: if mobile's `updatedAt` is newer than the portal's `updatedAt` for the same routine, the local version is preserved
   4. Running pull sync on a fresh install (empty local DB) populates the app with the user's full routine library from the portal without duplicates or foreign-key errors
-**Plans:** TBD
+**Plans:** 2 plans
+Plans:
+- [x] 27-01-PLAN.md — Pull DTOs (camelCase), pullPortalPayload() API method, PortalPullAdapter, mergePortalRoutines() with exercises
+- [x] 27-02-PLAN.md — Wire pullRemoteChanges() into SyncManager.sync(), merge routines/badges/stats/RPG, skip sessions
 
 ### Phase 28: Integration Validation
 **Repo:** Both (Project-Phoenix-MP + phoenix-portal)
@@ -186,10 +189,10 @@ Plans:
 | 24. Supabase Auth Migration | 3/3 | Complete | 2026-03-02 |
 | 25. Edge Functions | 2/2 | Complete | 2026-03-02 |
 | 26. Mobile Push Wire-Up | 0/2 | Planned | - |
-| 27. Mobile Pull Wire-Up | 0/TBD | Not started | - |
+| 27. Mobile Pull Wire-Up | 2/2 | Complete | 2026-03-02 |
 | 28. Integration Validation | 0/TBD | Not started | - |
 
 **Last phase number:** 28
 
 ---
-*Last updated: 2026-03-02 — Phase 26 planned (2 plans)*
+*Last updated: 2026-03-02 — Phase 27 planned (2 plans)*

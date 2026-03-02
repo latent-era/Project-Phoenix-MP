@@ -5,6 +5,7 @@ import com.devil.phoenixproject.data.sync.EarnedBadgeSyncDto
 import com.devil.phoenixproject.data.sync.GamificationStatsSyncDto
 import com.devil.phoenixproject.data.sync.IdMappings
 import com.devil.phoenixproject.data.sync.PersonalRecordSyncDto
+import com.devil.phoenixproject.data.sync.PullRoutineDto
 import com.devil.phoenixproject.data.sync.RoutineSyncDto
 import com.devil.phoenixproject.data.sync.WorkoutSessionSyncDto
 import com.devil.phoenixproject.domain.model.Routine
@@ -100,4 +101,13 @@ interface SyncRepository {
      * Merge gamification stats from server
      */
     suspend fun mergeGamificationStats(stats: GamificationStatsSyncDto?)
+
+    /**
+     * Merge portal routines with exercises. Handles full routine + exercise replacement.
+     * Respects local modifications: if local updatedAt > lastSync, keeps local version.
+     *
+     * @param routines Portal routine DTOs with nested exercises
+     * @param lastSync The lastSync timestamp — routines modified locally after this are preserved
+     */
+    suspend fun mergePortalRoutines(routines: List<PullRoutineDto>, lastSync: Long)
 }

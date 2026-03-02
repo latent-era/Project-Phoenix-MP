@@ -141,6 +141,16 @@ class PortalApiClient(
         }
     }
 
+    suspend fun pullPortalPayload(lastSync: Long, deviceId: String): Result<PortalSyncPullResponse> {
+        return authenticatedRequest { token ->
+            httpClient.post("${supabaseConfig.url}/functions/v1/mobile-sync-pull") {
+                bearerAuth(token)
+                header("apikey", supabaseConfig.anonKey)
+                setBody(mapOf("deviceId" to deviceId, "lastSync" to lastSync))
+            }
+        }
+    }
+
     // === Legacy Sync Endpoints (Railway — kept temporarily) ===
 
     suspend fun getSyncStatus(): Result<SyncStatusResponse> {
