@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.4
-milestone_name: milestone
-status: unknown
-last_updated: "2026-03-02T20:18:11.662Z"
+milestone: v0.6.0
+milestone_name: Portal Sync Compatibility
+status: in_progress
+last_updated: "2026-03-02T20:22:44.723Z"
 progress:
-  total_phases: 23
-  completed_phases: 22
-  total_plans: 56
-  completed_plans: 60
+  total_phases: 6
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # GSD State: Project Phoenix MP
@@ -82,7 +82,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 ## Blockers
 
-None currently.
+- Pre-commit hook blocks commits: daem0nmcp Python module not installed in pythoncore-3.14-64. Hook calls `python -m daem0nmcp.cli`. Install daem0nmcp in that Python env or fix hook Python path.
 
 ---
-*Last updated: 2026-03-02 — Phase 23 Plan 03 (quality fixes migration: RLS perf + column types) complete*
+*Last updated: 2026-03-02 — Phase 23 all 3 plans (01: exercises denorm + INSERT RLS, 02: mode wire format, 03: quality fixes) complete*
