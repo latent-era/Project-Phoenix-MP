@@ -66,15 +66,16 @@ object BleConstants {
      * Layout:
      * - 0x30-0x3F: concentric activation phase
      * - 0x40-0x4F: eccentric activation phase
-     * - 0x48-0x4B: softMax (overlaps eccentric tail — firmware reads here, write AFTER profile copy)
-     * - 0x4C-0x4F: increment (overlaps eccentric tail — firmware reads here, write AFTER profile copy)
+     * - 0x48-0x4B: legacy softMax for overlap firmware variants (overlaps eccentric tail)
+     * - 0x4C-0x4F: legacy increment for overlap firmware variants (overlaps eccentric tail)
      * - 0x50-0x53: forceMin (0.0f)
      * - 0x54-0x57: forceMax (adjustedWeight + 10.0f — force ceiling)
      * - 0x58-0x5B: target weight (adjustedWeight — actual operating weight)
      * - 0x5C-0x5F: progression (progressionRegressionKg)
      *
-     * Issue #262: Firmware reads softMax at 0x48 and increment at 0x4C, which overlap
-     * the eccentric phase tail. These must be written AFTER copying the mode profile.
+     * Firmware variants differ:
+     * - NON_OVERLAP: keep 0x48-0x4F as profile bytes and use 0x58/0x5C for active weights.
+     * - OVERLAP: write legacy softMax/increment at 0x48/0x4C after profile copy.
      */
     object ActivationPacket {
         const val SIZE = 96

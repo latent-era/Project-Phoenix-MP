@@ -248,7 +248,10 @@ class BlePacketFactoryTest {
             weightPerCableKg = weight
         )
 
-        val packet = BlePacketFactory.createProgramParams(params)
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
 
         // Firmware reads softMax from 0x48 (Issue #262)
         assertEquals(weight, readFloatLE(packet, BleConstants.ActivationPacket.OFFSET_SOFT_MAX))
@@ -264,7 +267,10 @@ class BlePacketFactoryTest {
             progressionRegressionKg = progression
         )
 
-        val packet = BlePacketFactory.createProgramParams(params)
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
 
         // Firmware reads increment from 0x4C (Issue #262)
         assertEquals(progression, readFloatLE(packet, BleConstants.ActivationPacket.OFFSET_INCREMENT))
@@ -302,8 +308,7 @@ class BlePacketFactoryTest {
         // Critical: 0x58 must have the actual weight, NOT softMax (100.0f)
         // This bug caused the machine to apply weight+10kg instead of the set weight
         assertEquals(weight, readFloatLE(packet, BleConstants.ActivationPacket.OFFSET_TARGET_WEIGHT))
-        // softMax goes to 0x48 for firmware
-        assertEquals(100.0f, readFloatLE(packet, BleConstants.ActivationPacket.OFFSET_SOFT_MAX))
+        assertEquals(15.0f, readFloatLE(packet, BleConstants.ActivationPacket.OFFSET_FORCE_MAX))
     }
 
     @Test
@@ -315,7 +320,10 @@ class BlePacketFactoryTest {
             isAMRAP = true
         )
 
-        val packet = BlePacketFactory.createProgramParams(params)
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
 
         assertEquals(100.0f, readFloatLE(packet, BleConstants.ActivationPacket.OFFSET_SOFT_MAX))
         // Target weight at 0x58 must be the actual weight, not softMax
@@ -331,7 +339,10 @@ class BlePacketFactoryTest {
             isJustLift = true
         )
 
-        val packet = BlePacketFactory.createProgramParams(params)
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
 
         assertEquals(100.0f, readFloatLE(packet, BleConstants.ActivationPacket.OFFSET_SOFT_MAX))
         // Target weight must be at 0x58, not softMax
@@ -362,7 +373,10 @@ class BlePacketFactoryTest {
             progressionRegressionKg = 3f
         )
 
-        val packet = BlePacketFactory.createProgramParams(params)
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
 
         // Firmware force config (0x48-0x4F)
         assertEquals(40.0f, readFloatLE(packet, 0x48))  // softMax = weightPerCableKg
@@ -373,6 +387,57 @@ class BlePacketFactoryTest {
         assertEquals(47.0f, readFloatLE(packet, 0x54))   // forceMax = 40-3+10
         assertEquals(37.0f, readFloatLE(packet, 0x58))   // targetWeight = 40-3
         assertEquals(3.0f, readFloatLE(packet, 0x5C))   // progression
+    }
+
+    @Test
+    fun `createProgramParams non-overlap keeps profile tail bytes unchanged`() {
+        val params = WorkoutParameters(
+            programMode = ProgramMode.Pump,
+            reps = 10,
+            weightPerCableKg = 40f,
+            progressionRegressionKg = 3f
+        )
+
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.NON_OVERLAP
+        )
+
+        val expectedTail = byteArrayOf(
+            0x9C.toByte(), 0xFF.toByte(),
+            0xCE.toByte(), 0xFF.toByte(),
+            0x00.toByte(), 0x00.toByte(), 0x80.toByte(), 0x3F.toByte()
+        )
+        assertContentEquals(expectedTail, packet.copyOfRange(0x48, 0x50))
+    }
+
+    @Test
+    fun `createProgramParams variant selection yields expected overlap and non-overlap layouts`() {
+        val params = WorkoutParameters(
+            programMode = ProgramMode.Pump,
+            reps = 10,
+            weightPerCableKg = 40f,
+            progressionRegressionKg = 3f
+        )
+
+        val nonOverlapPacket = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.NON_OVERLAP
+        )
+        val overlapPacket = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
+
+        assertEquals(40.0f, readFloatLE(overlapPacket, 0x48))
+        assertEquals(3.0f, readFloatLE(overlapPacket, 0x4C))
+
+        assertEquals(37.0f, readFloatLE(nonOverlapPacket, 0x58))
+        assertEquals(3.0f, readFloatLE(nonOverlapPacket, 0x5C))
+        assertEquals(37.0f, readFloatLE(overlapPacket, 0x58))
+        assertEquals(3.0f, readFloatLE(overlapPacket, 0x5C))
+
+        assertTrue(nonOverlapPacket.copyOfRange(0x48, 0x50).contentEquals(overlapPacket.copyOfRange(0x48, 0x50)).not())
     }
 
     // ========== Echo Mode Tests ==========

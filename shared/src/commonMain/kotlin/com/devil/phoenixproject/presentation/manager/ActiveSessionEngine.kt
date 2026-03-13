@@ -1340,6 +1340,14 @@ class ActiveSessionEngine(
                 Logger.i { "CONFIG command sent: ${command.size} bytes for ${effectiveParams.programMode}" }
                 val preview = command.take(16).joinToString(" ") { it.toUByte().toString(16).padStart(2, '0').uppercase() }
                 Logger.d { "Config preview: $preview ..." }
+                if (!effectiveParams.isEchoMode && command.size >= 0x60) {
+                    val activationTailDump = command
+                        .copyOfRange(0x48, 0x60)
+                        .joinToString(" ") { it.toUByte().toString(16).padStart(2, '0').uppercase() }
+                    Logger.w {
+                        "BLE-ACTIVATION-VERIFY (temporary): offsets 0x48..0x5F => $activationTailDump"
+                    }
+                }
             } catch (e: Exception) {
                 Logger.e(e) { "Failed to send config command" }
                 coordinator._bleErrorEvents.tryEmit("Failed to send command: ${e.message}")
