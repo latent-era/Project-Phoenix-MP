@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-green.svg)](https://github.com/DasBluEyedDevil/Project-Phoenix-MP/releases)
 
 **Keep your Vitruvian Trainer alive.** This community-developed app restores full functionality to Vitruvian V-Form and Trainer+ machines after the company's closure. Don't let your investment become e-waste.
-
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/9thLevelSoftware/Project-Phoenix-MP)
 ---
 
 ## Support the Project
