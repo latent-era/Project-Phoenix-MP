@@ -137,7 +137,8 @@ fun EnhancedMainScreen(
         currentRoute == NavigationRoutes.DailyRoutines.route ||
         currentRoute == NavigationRoutes.TrainingCycles.route ||
         currentRoute == NavigationRoutes.Analytics.route ||
-        currentRoute == NavigationRoutes.SmartInsights.route ||
+        // MVP: SmartInsights removed for v0.7.0
+        // currentRoute == NavigationRoutes.SmartInsights.route ||
         currentRoute == NavigationRoutes.Settings.route
     }
 
@@ -321,33 +322,34 @@ fun EnhancedMainScreen(
                         )
                     )
 
-                    // Smart Insights tab
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "Insights"
-                            )
-                        },
-                        label = { Text("Insights") },
-                        selected = currentRoute == NavigationRoutes.SmartInsights.route,
-                        onClick = {
-                            if (currentRoute != NavigationRoutes.SmartInsights.route) {
-                                navController.navigate(NavigationRoutes.SmartInsights.route) {
-                                    popUpTo(NavigationRoutes.Home.route) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    )
+                    // MVP: Removed for v0.7.0 — functionality moving to portal
+//                    // Smart Insights tab
+//                    NavigationBarItem(
+//                        icon = {
+//                            Icon(
+//                                imageVector = Icons.Default.AutoAwesome,
+//                                contentDescription = "Insights"
+//                            )
+//                        },
+//                        label = { Text("Insights") },
+//                        selected = currentRoute == NavigationRoutes.SmartInsights.route,
+//                        onClick = {
+//                            if (currentRoute != NavigationRoutes.SmartInsights.route) {
+//                                navController.navigate(NavigationRoutes.SmartInsights.route) {
+//                                    popUpTo(NavigationRoutes.Home.route) { saveState = true }
+//                                    launchSingleTop = true
+//                                    restoreState = true
+//                                }
+//                            }
+//                        },
+//                        colors = NavigationBarItemDefaults.colors(
+//                            selectedIconColor = MaterialTheme.colorScheme.primary,
+//                            selectedTextColor = MaterialTheme.colorScheme.primary,
+//                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+//                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+//                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+//                        )
+//                    )
 
                     // Settings tab
                     NavigationBarItem(

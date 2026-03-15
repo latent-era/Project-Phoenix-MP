@@ -36,6 +36,7 @@ import org.koin.compose.koinInject
 import com.devil.phoenixproject.domain.subscription.SubscriptionManager
 import com.devil.phoenixproject.presentation.components.CountdownDropdown
 import com.devil.phoenixproject.ui.theme.*
+import com.devil.phoenixproject.data.sync.SyncTriggerManager
 import com.devil.phoenixproject.util.DeviceInfo
 import com.devil.phoenixproject.util.KmpUtils
 
@@ -128,6 +129,9 @@ fun SettingsTab(
     val backupManager: DataBackupManager = koinInject()
     // Inject SubscriptionManager for tier gating
     val subscriptionManager: SubscriptionManager = koinInject()
+    // Inject SyncTriggerManager for sync error indicator
+    val syncTriggerManager: SyncTriggerManager = koinInject()
+    val hasSyncError by syncTriggerManager.hasPersistentError.collectAsState()
     val hasProAccess by subscriptionManager.hasProAccess.collectAsState()
 
     // Set global title
@@ -143,6 +147,105 @@ fun SettingsTab(
         verticalArrangement = Arrangement.spacedBy(Spacing.medium)
     ) {
         // Header removed for global scaffold integration
+
+        // Cloud Sync Section - Material 3 Expressive (moved to top for discoverability)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(8.dp, RoundedCornerShape(20.dp)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.medium)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .shadow(8.dp, RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Color(0xFF06B6D4), Color(0xFF3B82F6))
+                                ),
+                                RoundedCornerShape(20.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Cloud,
+                            contentDescription = "Cloud Sync",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(Spacing.medium))
+                    Text(
+                        "Cloud Sync",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(modifier = Modifier.height(Spacing.small))
+
+                OutlinedButton(
+                    onClick = onNavigateToLinkAccount,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(
+                        Icons.Default.Sync,
+                        contentDescription = "Link Portal Account",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.small))
+                    Text(
+                        "Link Portal Account",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "Sync your workouts to the Phoenix Portal for cross-device access",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (hasSyncError) {
+                    Spacer(modifier = Modifier.height(Spacing.small))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = "Sync Error",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.small))
+                        Text(
+                            "Sync error — tap above to retry",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        }
 
         // Donation Card - Material 3 Expressive
         val uriHandler = LocalUriHandler.current
@@ -828,77 +931,78 @@ fun SettingsTab(
         }
     }
 
-    // Accessibility Section - Color-blind mode toggle
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.medium)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFF42A5F5), Color(0xFFFF9800))
-                            ),
-                            RoundedCornerShape(20.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Accessibility,
-                        contentDescription = "Accessibility",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(Spacing.medium))
-                Text(
-                    "Accessibility",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.medium))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Color-blind Mode",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        "Deuteranopia-safe palette (blue/orange)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = colorBlindModeEnabled,
-                    onCheckedChange = { onColorBlindModeChange(it) }
-                )
-            }
-        }
-    }
+    // MVP: Removed for v0.7.0 — functionality moving to portal
+//    // Accessibility Section - Color-blind mode toggle
+//    Card(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .shadow(8.dp, RoundedCornerShape(20.dp)),
+//        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+//        shape = RoundedCornerShape(20.dp),
+//        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+//        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+//    ) {
+//        Column(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(Spacing.medium)
+//        ) {
+//            Row(verticalAlignment = Alignment.CenterVertically) {
+//                Box(
+//                    modifier = Modifier
+//                        .size(48.dp)
+//                        .shadow(8.dp, RoundedCornerShape(20.dp))
+//                        .background(
+//                            Brush.linearGradient(
+//                                listOf(Color(0xFF42A5F5), Color(0xFFFF9800))
+//                            ),
+//                            RoundedCornerShape(20.dp)
+//                        ),
+//                    contentAlignment = Alignment.Center
+//                ) {
+//                    Icon(
+//                        Icons.Default.Accessibility,
+//                        contentDescription = "Accessibility",
+//                        tint = MaterialTheme.colorScheme.onPrimary,
+//                        modifier = Modifier.size(24.dp)
+//                    )
+//                }
+//                Spacer(modifier = Modifier.width(Spacing.medium))
+//                Text(
+//                    "Accessibility",
+//                    style = MaterialTheme.typography.titleLarge,
+//                    fontWeight = FontWeight.Bold,
+//                    color = MaterialTheme.colorScheme.onSurface
+//                )
+//            }
+//
+//            Spacer(modifier = Modifier.height(Spacing.medium))
+//
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalArrangement = Arrangement.SpaceBetween,
+//                verticalAlignment = Alignment.CenterVertically
+//            ) {
+//                Column(modifier = Modifier.weight(1f)) {
+//                    Text(
+//                        "Color-blind Mode",
+//                        style = MaterialTheme.typography.bodyLarge,
+//                        fontWeight = FontWeight.Medium,
+//                        color = MaterialTheme.colorScheme.onSurface
+//                    )
+//                    Text(
+//                        "Deuteranopia-safe palette (blue/orange)",
+//                        style = MaterialTheme.typography.bodySmall,
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant
+//                    )
+//                }
+//                Switch(
+//                    checked = colorBlindModeEnabled,
+//                    onCheckedChange = { onColorBlindModeChange(it) }
+//                )
+//            }
+//        }
+//    }
 
     // Workout HUD Section - Preset page visibility
     Card(
@@ -1269,84 +1373,6 @@ fun SettingsTab(
             )
         }
     }
-    }
-
-    // Cloud Sync Section - Material 3 Expressive
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.medium)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF06B6D4), Color(0xFF3B82F6))
-                            ),
-                            RoundedCornerShape(20.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Cloud,
-                        contentDescription = "Cloud Sync",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(Spacing.medium))
-                Text(
-                    "Cloud Sync",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Spacer(modifier = Modifier.height(Spacing.small))
-
-            OutlinedButton(
-                onClick = onNavigateToLinkAccount,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary
-                ),
-                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-            ) {
-                Icon(
-                    Icons.Default.Sync,
-                    contentDescription = "Link Portal Account",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(Spacing.small))
-                Text(
-                    "Link Portal Account",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                "Sync your workouts to the Phoenix Portal for cross-device access",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 
     // Developer Tools Section - Material 3 Expressive

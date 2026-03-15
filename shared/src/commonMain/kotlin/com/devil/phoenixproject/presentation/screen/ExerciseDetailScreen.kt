@@ -131,25 +131,26 @@ fun ExerciseDetailScreen(
                     )
                 }
 
-                // Assess 1RM button
-                item {
-                    OutlinedButton(
-                        onClick = {
-                            navController.navigate(
-                                NavigationRoutes.StrengthAssessment.createRoute(exerciseId)
-                            )
-                        },
-                        enabled = isConnected,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = if (isConnected) "Assess 1RM" else "Assess 1RM (Connect to trainer first)",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                // MVP: Removed for v0.7.0 — functionality moving to portal
+//                // Assess 1RM button
+//                item {
+//                    OutlinedButton(
+//                        onClick = {
+//                            navController.navigate(
+//                                NavigationRoutes.StrengthAssessment.createRoute(exerciseId)
+//                            )
+//                        },
+//                        enabled = isConnected,
+//                        modifier = Modifier.fillMaxWidth(),
+//                        shape = RoundedCornerShape(12.dp)
+//                    ) {
+//                        Text(
+//                            text = if (isConnected) "Assess 1RM" else "Assess 1RM (Connect to trainer first)",
+//                            style = MaterialTheme.typography.labelLarge,
+//                            fontWeight = FontWeight.Bold
+//                        )
+//                    }
+//                }
 
                 // View mode toggle
                 item {
