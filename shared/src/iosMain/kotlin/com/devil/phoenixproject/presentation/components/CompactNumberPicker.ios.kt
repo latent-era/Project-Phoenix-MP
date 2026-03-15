@@ -310,6 +310,8 @@ actual fun CompactNumberPicker(
                     .height(containerHeight),
                 contentAlignment = Alignment.Center
             ) {
+                val showCenteredOverlay = !isEditing && values.isNotEmpty()
+
                 LazyColumn(
                     state = listState,
                     flingBehavior = flingBehavior,
@@ -389,7 +391,7 @@ actual fun CompactNumberPicker(
                                         )
                                     }
                                 }
-                            } else {
+                            } else if (!(showCenteredOverlay && isSelected)) {
                                 // Regular Text display
                                 Text(
                                     text = formatValue(floatVal),
@@ -406,20 +408,21 @@ actual fun CompactNumberPicker(
                     }
                 }
 
-                if (!isEditing) {
-                    val previewIndex = if (values.isNotEmpty() && (isUserInteracting || listState.isScrollInProgress)) {
+                if (showCenteredOverlay) {
+                    val previewIndex = if (isUserInteracting || listState.isScrollInProgress) {
                         listState.firstVisibleItemIndex.coerceIn(values.indices)
                     } else {
                         safeCurrentIndex
                     }
-                    val overlayText = if (values.isNotEmpty()) formatValue(values[previewIndex]) else "--"
                     Text(
-                        text = overlayText,
+                        text = formatValue(values[previewIndex]),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .clickable { isEditing = true }
                     )
                 }
 

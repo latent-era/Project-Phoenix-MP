@@ -3,3 +3,6 @@
 -- (selectMetricsBySession: WHERE sessionId = ? ORDER BY timestamp ASC)
 
 CREATE INDEX IF NOT EXISTS idx_metric_sample_session ON MetricSample(sessionId);
+
+-- Add cable-count context for fallback session volume calculations.
+ALTER TABLE WorkoutSession ADD COLUMN cableCount INTEGER;

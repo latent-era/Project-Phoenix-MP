@@ -74,6 +74,7 @@ sealed class WorkoutState {
         val repCount: Int,
         val durationMs: Long = 0L,
         val totalVolumeKg: Float = 0f,
+        val cableCount: Int = 1,
         val heaviestLiftKgPerCable: Float = 0f,
         val configuredWeightKgPerCable: Float = 0f,
         val peakForceConcentricA: Float = 0f,  // Peak during lifting (velocity > 0)
@@ -153,11 +154,10 @@ sealed class RoutineFlowState {
 }
 
 /**
- * Program modes that use command 0x4F (96-byte frame)
- * Note: Official app uses 0x4F, NOT 0x04
+ * Program modes used by Phoenix workout setup.
  *
- * Echo mode (modeValue 10) uses a different BLE command (0x4E) but is included
- * here for unified mode selection in the UI layer.
+ * Non-Echo modes start with the 96-byte activation/config frame (command 0x04),
+ * followed by a START command (0x03). Echo uses its dedicated 0x4E packet.
  */
 sealed class ProgramMode(val modeValue: Int, val displayName: String) {
     object OldSchool : ProgramMode(0, "Old School")
@@ -307,7 +307,7 @@ data class WorkoutParameters(
     val programMode: ProgramMode,
     val reps: Int,
     val weightPerCableKg: Float = 0f,  // Only used for Program modes
-    val progressionRegressionKg: Float = 0f,  // Only used for Program modes (not TUT/TUTBeast)
+    val progressionRegressionKg: Float = 0f,  // Positive = progression, negative = regression
     val isJustLift: Boolean = false,
     val useAutoStart: Boolean = false, // true for Just Lift, false for others
     val stopAtTop: Boolean = false,  // false = stop at bottom (extended), true = stop at top (contracted)
@@ -486,6 +486,7 @@ data class WorkoutSession(
     val avgForceEccentricB: Float? = null,
     val heaviestLiftKg: Float? = null,
     val totalVolumeKg: Float? = null,
+    val cableCount: Int? = null,
     val estimatedCalories: Float? = null,
     val warmupAvgWeightKg: Float? = null,
     val workingAvgWeightKg: Float? = null,
@@ -527,10 +528,13 @@ fun WorkoutSession.effectiveHeaviestKgPerCable(): Float =
  * Effective total volume (kg) for analytics/display.
  *
  * Uses measured summary volume when available (v0.2.1+), otherwise falls back to
- * legacy approximation: configuredWeightPerCable * 2 cables * reps.
+ * configuredWeightPerCable * cableCount * reps.
+ *
+ * Legacy rows may not have cableCount metadata; in those cases we default to 1 cable
+ * to avoid overcounting historical volume.
  */
 fun WorkoutSession.effectiveTotalVolumeKg(): Float =
-    totalVolumeKg ?: (weightPerCableKg * 2f * totalReps)
+    totalVolumeKg ?: (weightPerCableKg * ((if (cableCount == 2) 2 else 1).toFloat()) * totalReps)
 
 /**
  * Convert WorkoutSession to SetSummary for display in history.
@@ -546,6 +550,7 @@ fun WorkoutSession.toSetSummary(): WorkoutState.SetSummary? {
         repCount = totalReps,
         durationMs = duration,
         totalVolumeKg = effectiveTotalVolumeKg(),
+        cableCount = cableCount ?: 1,
         heaviestLiftKgPerCable = effectiveHeaviestKgPerCable(),
         configuredWeightKgPerCable = weightPerCableKg,
         peakForceConcentricA = peakForceConcentricA ?: 0f,

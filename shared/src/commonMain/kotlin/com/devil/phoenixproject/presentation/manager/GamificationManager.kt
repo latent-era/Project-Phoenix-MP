@@ -51,7 +51,7 @@ class GamificationManager(
     suspend fun processPostSaveEvents(
         exerciseId: String?,
         workingReps: Int,
-        measuredWeightKg: Float,
+        recordedWeightKg: Float,
         programMode: ProgramMode,
         isJustLift: Boolean,
         isEchoMode: Boolean,
@@ -71,7 +71,7 @@ class GamificationManager(
                     // Check COMBINED (traditional) PRs
                     val result = personalRecordRepository.updatePRsIfBetter(
                         exerciseId = exId,
-                        weightPerCableKg = measuredWeightKg,
+                        weightPerCableKg = recordedWeightKg,
                         reps = workingReps,
                         workoutMode = workoutMode,
                         timestamp = timestamp
@@ -106,13 +106,13 @@ class GamificationManager(
                                 _prCelebrationEvent.emit(
                                     PRCelebrationEvent(
                                         exerciseName = exercise?.name ?: "Unknown Exercise",
-                                        weightPerCableKg = measuredWeightKg,
+                                        weightPerCableKg = recordedWeightKg,
                                         reps = workingReps,
                                         workoutMode = workoutMode,
                                         brokenPRTypes = brokenPRs
                                     )
                                 )
-                                Logger.d("NEW PR ($prTypeDescription): ${exercise?.name} - $measuredWeightKg kg x $workingReps reps in $workoutMode mode")
+                                Logger.d("NEW PR ($prTypeDescription): ${exercise?.name} - $recordedWeightKg kg x $workingReps reps in $workoutMode mode")
                             }
                         }.onFailure { e ->
                             Logger.e(e) { "Error updating PR: ${e.message}" }

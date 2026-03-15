@@ -61,7 +61,21 @@ object BleConstants {
     }
 
     /**
-     * Activation packet (0x04) byte layout — 96-byte frame matching parent repo.
+     * Activation packet (0x04) byte layout — 96-byte frame.
+     *
+     * Layout:
+     * - 0x30-0x3F: concentric activation phase
+     * - 0x40-0x4F: eccentric activation phase
+     * - 0x48-0x4B: legacy softMax for overlap firmware variants (overlaps eccentric tail)
+     * - 0x4C-0x4F: legacy increment for overlap firmware variants (overlaps eccentric tail)
+     * - 0x50-0x53: forceMin (0.0f)
+     * - 0x54-0x57: forceMax (adjustedWeight + 10.0f — force ceiling)
+     * - 0x58-0x5B: target weight (adjustedWeight — actual operating weight)
+     * - 0x5C-0x5F: progression (progressionRegressionKg)
+     *
+     * Firmware variants differ:
+     * - NON_OVERLAP: keep 0x48-0x4F as profile bytes and use 0x58/0x5C for active weights.
+     * - OVERLAP: write legacy softMax/increment at 0x48/0x4C after profile copy.
      *
      * Issue #262: Firmware reads softMax (0x48) and increment (0x4C) from offsets
      * that overlap the mode profile block (0x30-0x4F). We write these values AFTER
@@ -69,15 +83,15 @@ object BleConstants {
      */
     object ActivationPacket {
         const val SIZE = 96
-        // Mode profile
         const val OFFSET_MODE_PROFILE = 0x30   // 32 bytes (concentric + eccentric phases)
-        // Force config (overlaps end of mode profile — firmware reads these as force params)
+        // Firmware force config (overlaps end of mode profile — write AFTER profile copy)
         const val OFFSET_SOFT_MAX = 0x48       // Weight ceiling (float LE) — caps progression
         const val OFFSET_INCREMENT = 0x4C      // Per-rep progression kg (float LE)
-        // Weight fields
-        const val OFFSET_EFFECTIVE_KG = 0x54   // adjustedWeight + 10.0 (float LE)
-        const val OFFSET_TOTAL_KG = 0x58       // adjustedWeight (float LE)
-        const val OFFSET_PROGRESSION = 0x5C    // progressionRegressionKg (float LE)
+        // Force config block
+        const val OFFSET_FORCE_MIN = 0x50      // 0.0f in activation packets
+        const val OFFSET_FORCE_MAX = 0x54      // adjustedWeight + 10.0f (force ceiling)
+        const val OFFSET_TARGET_WEIGHT = 0x58  // adjustedWeight (actual operating weight)
+        const val OFFSET_PROGRESSION = 0x5C    // progressionRegressionKg
     }
 
     // Legacy aliases for backward compatibility

@@ -284,14 +284,15 @@ class SqlDelightGamificationRepository(
 
     /**
      * Get the maximum volume (kg) lifted in any single workout session
-     * Prefer measured totalVolumeKg when available (v0.2.1+), fallback to legacy approximation.
+     * Prefer measured totalVolumeKg when available (v0.2.1+), otherwise fallback using stored cableCount.
+     * Legacy rows without cable metadata default conservatively to single-cable volume.
      */
     private fun getMaxSingleSessionVolume(): Int {
         val sessions = queries.selectAllSessions().executeAsList()
         if (sessions.isEmpty()) return 0
 
         return sessions.maxOfOrNull { session ->
-            (session.totalVolumeKg ?: (session.totalReps * session.weightPerCableKg * 2.0)).toInt()
+            (session.totalVolumeKg ?: (session.totalReps * session.weightPerCableKg * (session.cableCount ?: 1L).toDouble())).toInt()
         } ?: 0
     }
 

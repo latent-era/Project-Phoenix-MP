@@ -82,6 +82,7 @@ CREATE TABLE WorkoutSession (
     avgForceEccentricB REAL,
     heaviestLiftKg REAL,
     totalVolumeKg REAL,
+    cableCount INTEGER,
     estimatedCalories REAL,
     warmupAvgWeightKg REAL,
     workingAvgWeightKg REAL,
@@ -519,12 +520,12 @@ INSERT INTO WorkoutSession (
     safetyFlags, deloadWarningCount, romViolationCount, spotterActivations,
     peakForceConcentricA, peakForceConcentricB, peakForceEccentricA, peakForceEccentricB,
     avgForceConcentricA, avgForceConcentricB, avgForceEccentricA, avgForceEccentricB,
-    heaviestLiftKg, totalVolumeKg, estimatedCalories,
+    heaviestLiftKg, totalVolumeKg, cableCount, estimatedCalories,
     warmupAvgWeightKg, workingAvgWeightKg, burnoutAvgWeightKg, peakWeightKg, rpe,
     avgMcvMmS, avgAsymmetryPercent, totalVelocityLossPercent, dominantSide, strengthProfile,
     formScore
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateSession:
 UPDATE WorkoutSession
@@ -1066,7 +1067,7 @@ countTotalReps:
 SELECT SUM(totalReps) FROM WorkoutSession;
 
 countTotalVolume:
-SELECT SUM(COALESCE(totalVolumeKg, totalReps * weightPerCableKg * 2)) FROM WorkoutSession;
+SELECT SUM(COALESCE(totalVolumeKg, totalReps * weightPerCableKg * COALESCE(cableCount, 1))) FROM WorkoutSession;
 
 countUniqueExercises:
 SELECT COUNT(DISTINCT exerciseId) FROM WorkoutSession WHERE exerciseId IS NOT NULL;
@@ -1607,13 +1608,13 @@ INSERT OR REPLACE INTO WorkoutSession (
     safetyFlags, deloadWarningCount, romViolationCount, spotterActivations,
     peakForceConcentricA, peakForceConcentricB, peakForceEccentricA, peakForceEccentricB,
     avgForceConcentricA, avgForceConcentricB, avgForceEccentricA, avgForceEccentricB,
-    heaviestLiftKg, totalVolumeKg, estimatedCalories,
+    heaviestLiftKg, totalVolumeKg, cableCount, estimatedCalories,
     warmupAvgWeightKg, workingAvgWeightKg, burnoutAvgWeightKg, peakWeightKg, rpe,
     avgMcvMmS, avgAsymmetryPercent, totalVelocityLossPercent, dominantSide, strengthProfile,
     formScore,
     updatedAt, serverId, deletedAt
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Get PRs modified since last sync
 selectPRsModifiedSince:

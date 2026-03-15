@@ -310,6 +310,7 @@ class ActiveSessionEngine(
                 peakPower = 0f,
                 averagePower = 0f,
                 repCount = repCount,
+                cableCount = 1,
                 heaviestLiftKgPerCable = fallbackWeightKg,
                 configuredWeightKgPerCable = configuredWeightKgPerCable
             )
@@ -342,8 +343,14 @@ class ActiveSessionEngine(
             metrics.maxOf { it.totalLoad / 2f }
         }
 
-        // Volume calculation: for double-cable multiply by 2 (both cables), for single-cable use as-is
-        val totalVolumeKg = heaviestLiftKgPerCable * (if (isSingleCable) 1f else 2f) * repCount
+        val volumeWeightKgPerCable = if (isEchoMode) {
+            heaviestLiftKgPerCable
+        } else {
+            configuredWeightKgPerCable
+        }
+        // Fixed-load modes should log the prescribed working load, while Echo uses measured force.
+        val cableCount = if (isSingleCable) 1 else 2
+        val totalVolumeKg = volumeWeightKgPerCable * cableCount.toFloat() * repCount
 
         val concentricMetrics = metrics.filter { it.velocityA > 10 || it.velocityB > 10 }
         val eccentricMetrics = metrics.filter { it.velocityA < -10 || it.velocityB < -10 }
@@ -454,6 +461,7 @@ class ActiveSessionEngine(
             repCount = repCount,
             durationMs = durationMs,
             totalVolumeKg = totalVolumeKg,
+            cableCount = cableCount,
             heaviestLiftKgPerCable = heaviestLiftKgPerCable,
             configuredWeightKgPerCable = configuredWeightKgPerCable,
             peakForceConcentricA = peakConcentricA,
@@ -556,13 +564,18 @@ class ActiveSessionEngine(
 
     /**
      * Standard set stall guard:
-     * - Ignore fail/stall detection before first confirmed working rep.
-     * - Ignore fail/stall detection while a rep is pending at TOP (brief pauses are common).
+     * - Defer stall detection only when no working reps are confirmed AND no rep is pending.
+     *
+     * Issue #256: Removed hasPendingRep guard from deferral. A stalled pending rep IS the
+     * failure scenario (e.g., failed bench press at TOP of first rep). The velocity hysteresis
+     * band (STALL_VELOCITY_LOW=2.5, STALL_VELOCITY_HIGH=10.0 mm/s) already provides adequate
+     * protection against false triggers during brief pauses. When workingReps == 0 but
+     * hasPendingRep is true, the user is mid-first-rep and must be protected.
      */
     private fun shouldDeferStandardSetStall(params: WorkoutParameters, repCount: RepCount): Boolean {
         val isStandardSet = !params.isJustLift && !params.isAMRAP && !coordinator.isCurrentTimedCableExercise
         if (!isStandardSet) return false
-        return repCount.workingReps == 0 || repCount.hasPendingRep
+        return repCount.workingReps == 0 && !repCount.hasPendingRep
     }
 
     /**
@@ -1487,6 +1500,16 @@ class ActiveSessionEngine(
         coordinator._workoutParameters.value = params
     }
 
+    /**
+     * Internal parameter updates used by manager-driven transitions.
+     *
+     * Unlike [updateWorkoutParameters], this intentionally does NOT mark the
+     * parameters as user-adjusted during rest.
+     */
+    fun setWorkoutParametersInternal(params: WorkoutParameters) {
+        coordinator._workoutParameters.value = params
+    }
+
     fun startWorkout(skipCountdown: Boolean = false, isJustLiftMode: Boolean = false) {
         Logger.d { "startWorkout called: skipCountdown=$skipCountdown, isJustLiftMode=$isJustLiftMode" }
         Logger.d { "startWorkout: loadedRoutine=${coordinator._loadedRoutine.value?.name}, params=${coordinator._workoutParameters.value}" }
@@ -1711,6 +1734,14 @@ class ActiveSessionEngine(
                 Logger.i { "CONFIG command sent: ${command.size} bytes for ${effectiveParams.programMode}" }
                 val preview = command.take(16).joinToString(" ") { it.toUByte().toString(16).padStart(2, '0').uppercase() }
                 Logger.d { "Config preview: $preview ..." }
+                if (!effectiveParams.isEchoMode && command.size >= 0x60) {
+                    val activationTailDump = command
+                        .copyOfRange(0x48, 0x60)
+                        .joinToString(" ") { it.toUByte().toString(16).padStart(2, '0').uppercase() }
+                    Logger.w {
+                        "BLE-ACTIVATION-VERIFY (temporary): offsets 0x48..0x5F => $activationTailDump"
+                    }
+                }
             } catch (e: Exception) {
                 Logger.e(e) { "Failed to send config command" }
                 coordinator._bleErrorEvents.tryEmit("Failed to send command: ${e.message}")
@@ -1895,6 +1926,7 @@ class ActiveSessionEngine(
                  avgForceEccentricB = summary.avgForceEccentricB,
                  heaviestLiftKg = summary.heaviestLiftKgPerCable,
                  totalVolumeKg = summary.totalVolumeKg,
+                 cableCount = summary.cableCount,
                  estimatedCalories = summary.estimatedCalories,
                  warmupAvgWeightKg = if (params.isEchoMode) summary.warmupAvgWeightKg else null,
                  workingAvgWeightKg = if (params.isEchoMode) summary.workingAvgWeightKg else null,
@@ -1929,7 +1961,7 @@ class ActiveSessionEngine(
              val hasPR = gamificationManager.processPostSaveEvents(
                  exerciseId = params.selectedExerciseId,
                  workingReps = repCount.workingReps,
-                 measuredWeightKg = params.weightPerCableKg,
+                 recordedWeightKg = params.weightPerCableKg,
                  programMode = params.programMode,
                  isJustLift = isJustLift,
                  isEchoMode = params.isEchoMode,
@@ -2095,24 +2127,6 @@ class ActiveSessionEngine(
 
         val metricsSnapshot = coordinator.collectedMetrics.toList()
 
-        // Issue #6 Fix: Detect single-cable exercises for correct weight measurement
-        val peakA = metricsSnapshot.maxOfOrNull { it.loadA } ?: 0f
-        val peakB = metricsSnapshot.maxOfOrNull { it.loadB } ?: 0f
-        val isSingleCable = (peakA > 0f && peakB > 0f &&
-            (peakA / peakB > 5f || peakB / peakA > 5f)) ||
-            (peakA > 0f && peakB == 0f) ||
-            (peakB > 0f && peakA == 0f)
-
-        val measuredPerCableKg = if (metricsSnapshot.isNotEmpty()) {
-            if (isSingleCable) {
-                metricsSnapshot.maxOf { maxOf(it.loadA, it.loadB) }
-            } else {
-                metricsSnapshot.maxOf { it.totalLoad / 2f }
-            }
-        } else {
-            params.weightPerCableKg
-        }
-
         val exerciseName = params.selectedExerciseId?.let { exerciseId ->
             exerciseRepository.getExerciseById(exerciseId)?.name
         }
@@ -2164,6 +2178,7 @@ class ActiveSessionEngine(
             avgForceEccentricB = summary.avgForceEccentricB,
             heaviestLiftKg = summary.heaviestLiftKgPerCable,
             totalVolumeKg = summary.totalVolumeKg,
+            cableCount = summary.cableCount,
             estimatedCalories = summary.estimatedCalories,
             warmupAvgWeightKg = if (params.isEchoMode) summary.warmupAvgWeightKg else null,
             workingAvgWeightKg = if (params.isEchoMode) summary.workingAvgWeightKg else null,
@@ -2217,7 +2232,7 @@ class ActiveSessionEngine(
         val hasPR = gamificationManager.processPostSaveEvents(
             exerciseId = params.selectedExerciseId,
             workingReps = working,
-            measuredWeightKg = measuredPerCableKg,
+            recordedWeightKg = params.weightPerCableKg,
             programMode = params.programMode,
             isJustLift = params.isJustLift,
             isEchoMode = params.isEchoMode,

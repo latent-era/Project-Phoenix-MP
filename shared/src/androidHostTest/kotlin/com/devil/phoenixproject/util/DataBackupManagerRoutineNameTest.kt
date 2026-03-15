@@ -290,6 +290,7 @@ class DataBackupManagerRoutineNameTest {
             avgForceEccentricB = null,
             heaviestLiftKg = null,
             totalVolumeKg = null,
+            cableCount = null,
             estimatedCalories = null,
             warmupAvgWeightKg = null,
             workingAvgWeightKg = null,
