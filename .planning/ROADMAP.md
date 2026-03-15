@@ -91,7 +91,7 @@ See `.planning/milestones/v0.6.0-*` for archived phase details.
 
 - [x] Phase 29: Core Sync UI (2/2 plans) — Enable sync UI on both platforms, ProGuard fix (completed 2026-03-15)
 - [x] Phase 30: iOS Sync Launch (2/2 plans) — Credential injection, Darwin engine verification, TestFlight (completed 2026-03-15)
-- [ ] Phase 31: Polish & Validation (3 plans) — Error indicator, version bump, release builds, E2E test
+- [ ] Phase 31: Polish & Validation (4 plans) — UX cleanup, sync discoverability, version bump, E2E validation
 
 ### Phase 29: Core Sync UI
 **Goal**: Enable the user-facing sync experience that's been built but commented out since v0.6.0
@@ -138,7 +138,7 @@ See `.planning/milestones/v0.6.0-*` for archived phase details.
 | v0.5.0 Premium Mobile | 13-15 | 7 | Complete | 2026-02-27 |
 | v0.5.1 Board Polish & Premium UI | 16-22 | 16 | Complete | 2026-02-28 |
 | v0.6.0 Portal Sync Compatibility | 23-28 | 13 | Complete | 2026-03-02 |
-| v0.7.0 MVP Cloud Sync | 29-31 | 7 | In Progress | — |
+| v0.7.0 MVP Cloud Sync | 29-31 | 8 | In Progress | — |
 
 **Last phase number:** 31
 
