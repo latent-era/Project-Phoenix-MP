@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # iOS Schema Validator
 # ====================
@@ -10,13 +10,14 @@
 # try to access columns that don't exist.
 #
 # This script validates:
-# 1. All tables in SQLDelight exist in iOS DriverFactory
-# 2. For each table, all columns in SQLDelight exist in iOS
+# 1. All SQLDelight tables exist in iOS DriverFactory
+# 2. iOS doesn't define extra tables
+# 3. Every column in every table matches, including order
 #
 # Run in CI to catch schema drift before it causes crashes.
 #
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Go up two levels from .github/scripts to project root
@@ -45,118 +46,172 @@ echo "  SQLDelight: $(basename $SQ_FILE)"
 echo "  iOS:        $(basename $IOS_FILE)"
 echo ""
 
-ERRORS=0
-
-# Extract table names from SQLDelight (tables start with "CREATE TABLE TableName (")
-SQ_TABLES=$(grep -oP '(?<=^CREATE TABLE )\w+' "$SQ_FILE" | sort | uniq)
-
-# Extract table names from iOS DriverFactory
-IOS_TABLES=$(grep -oP '(?<=CREATE TABLE IF NOT EXISTS )\w+' "$IOS_FILE" | sort | uniq)
-
-# Check 1: All SQLDelight tables exist in iOS
-echo "Step 1: Checking all SQLDelight tables exist in iOS..."
-for table in $SQ_TABLES; do
-    if ! echo "$IOS_TABLES" | grep -q "^${table}$"; then
-        echo "  ERROR: Table '$table' exists in SQLDelight but MISSING in iOS DriverFactory"
-        ERRORS=$((ERRORS + 1))
-    fi
-done
-if [ $ERRORS -eq 0 ]; then
-    echo "  OK: All $(echo "$SQ_TABLES" | wc -w | tr -d ' ') tables present in both files"
-fi
-
-# Check 2: For key tables, verify critical columns exist
-# We check a subset of critical columns that are used in common queries
-echo ""
-echo "Step 2: Checking critical columns in key tables..."
-
-check_column() {
-    local table=$1
-    local column=$2
-
-    # Check if column exists in iOS file for this table
-    # Search for the column name within the CREATE TABLE block
-    if ! grep -A 50 "CREATE TABLE IF NOT EXISTS $table" "$IOS_FILE" | grep -q "$column"; then
-        echo "  ERROR: Column '$column' missing from iOS table '$table'"
-        ERRORS=$((ERRORS + 1))
-    fi
-}
-
-# Exercise table - key columns
-check_column "Exercise" "muscleGroups"
-check_column "Exercise" "defaultCableConfig"
-check_column "Exercise" "one_rep_max_kg"
-check_column "Exercise" "timesPerformed"
-check_column "Exercise" "lastPerformed"
-
-# WorkoutSession table - key columns
-check_column "WorkoutSession" "timestamp"
-check_column "WorkoutSession" "targetReps"
-check_column "WorkoutSession" "weightPerCableKg"
-check_column "WorkoutSession" "exerciseId"
-check_column "WorkoutSession" "exerciseName"
-check_column "WorkoutSession" "routineSessionId"
-check_column "WorkoutSession" "totalReps"
-
-# Routine table - key columns
-check_column "Routine" "createdAt"
-check_column "Routine" "lastUsed"
-check_column "Routine" "useCount"
-check_column "Routine" "description"
-
-# RoutineExercise table - key columns
-check_column "RoutineExercise" "exerciseName"
-check_column "RoutineExercise" "exerciseMuscleGroup"
-check_column "RoutineExercise" "exerciseEquipment"
-check_column "RoutineExercise" "cableConfig"
-check_column "RoutineExercise" "setReps"
-check_column "RoutineExercise" "supersetId"
-check_column "RoutineExercise" "usePercentOfPR"
-
-# PersonalRecord table - key columns
-check_column "PersonalRecord" "exerciseId"
-check_column "PersonalRecord" "exerciseName"
-check_column "PersonalRecord" "weight"
-check_column "PersonalRecord" "reps"
-check_column "PersonalRecord" "oneRepMax"
-check_column "PersonalRecord" "workoutMode"
-check_column "PersonalRecord" "prType"
-check_column "PersonalRecord" "volume"
-
-# MetricSample table - key columns
-check_column "MetricSample" "sessionId"
-check_column "MetricSample" "position"
-check_column "MetricSample" "positionB"
-check_column "MetricSample" "velocity"
-check_column "MetricSample" "load"
-check_column "MetricSample" "power"
-
-# Check for required tables that were missing before the fix
-echo ""
-echo "Step 3: Checking previously missing tables..."
-REQUIRED_TABLES="ExerciseVideo ConnectionLog DiagnosticsHistory PhaseStatistics"
-for table in $REQUIRED_TABLES; do
-    if ! echo "$IOS_TABLES" | grep -q "^${table}$"; then
-        echo "  ERROR: Required table '$table' missing from iOS"
-        ERRORS=$((ERRORS + 1))
-    else
-        echo "  OK: Table '$table' present"
-    fi
-done
-
-echo ""
-echo "===================="
-if [ $ERRORS -eq 0 ]; then
-    echo "SUCCESS: iOS schema validation passed"
-    echo ""
-    echo "Tables checked: $(echo "$SQ_TABLES" | wc -w | tr -d ' ')"
-    exit 0
+PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
 else
-    echo "FAILED: Found $ERRORS schema mismatch error(s)"
-    echo ""
-    echo "To fix: Update shared/src/iosMain/kotlin/.../DriverFactory.ios.kt"
-    echo "        to match shared/src/commonMain/sqldelight/.../VitruvianDatabase.sq"
-    echo ""
-    echo "See: .planning/debug/resolved/issue-223-ios-fresh-install-sqlite-crash.md"
+    echo "ERROR: python3 or python is required to validate schema parity"
     exit 1
 fi
+
+"$PYTHON_BIN" - "$SQ_FILE" "$IOS_FILE" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+sq_file = Path(sys.argv[1])
+ios_file = Path(sys.argv[2])
+
+
+def strip_sql_comments(text: str) -> str:
+    cleaned_lines = []
+    for line in text.splitlines():
+        cleaned_lines.append(line.split("--", 1)[0])
+    return "\n".join(cleaned_lines)
+
+
+def split_top_level(body: str) -> list[str]:
+    parts = []
+    current = []
+    depth = 0
+    quote = None
+    i = 0
+
+    while i < len(body):
+        char = body[i]
+        if quote:
+            current.append(char)
+            if char == quote:
+                if quote == "'" and i + 1 < len(body) and body[i + 1] == quote:
+                    current.append(body[i + 1])
+                    i += 1
+                else:
+                    quote = None
+        else:
+            if char in ("'", '"'):
+                quote = char
+                current.append(char)
+            elif char == "(":
+                depth += 1
+                current.append(char)
+            elif char == ")":
+                depth -= 1
+                current.append(char)
+            elif char == "," and depth == 0:
+                part = "".join(current).strip()
+                if part:
+                    parts.append(part)
+                current = []
+            else:
+                current.append(char)
+        i += 1
+
+    tail = "".join(current).strip()
+    if tail:
+        parts.append(tail)
+    return parts
+
+
+def extract_columns(body: str) -> list[str]:
+    columns = []
+    for part in split_top_level(body):
+        stripped = part.strip()
+        if not stripped:
+            continue
+        upper = stripped.upper()
+        if upper.startswith(("FOREIGN KEY", "PRIMARY KEY", "UNIQUE", "CHECK", "CONSTRAINT")):
+            continue
+        columns.append(stripped.split()[0].strip('`"'))
+    return columns
+
+
+def extract_sqldelight_tables(text: str) -> dict[str, list[str]]:
+    clean_text = strip_sql_comments(text)
+    pattern = re.compile(r"CREATE TABLE\s+(\w+)\s*\((.*?)\);", re.S)
+    return {
+        match.group(1): extract_columns(match.group(2))
+        for match in pattern.finditer(clean_text)
+    }
+
+
+def extract_ios_tables(text: str) -> dict[str, list[str]]:
+    pattern = re.compile(r"CREATE TABLE IF NOT EXISTS\s+(\w+)\s*\((.*?)\)\s*\"\"\"", re.S)
+    return {
+        match.group(1): extract_columns(strip_sql_comments(match.group(2)))
+        for match in pattern.finditer(text)
+    }
+
+
+sql_tables = extract_sqldelight_tables(sq_file.read_text(encoding="utf-8"))
+ios_tables = extract_ios_tables(ios_file.read_text(encoding="utf-8"))
+
+errors: list[str] = []
+column_count = 0
+
+print("Step 1: Checking table parity...")
+missing_tables = sorted(set(sql_tables) - set(ios_tables))
+extra_tables = sorted(set(ios_tables) - set(sql_tables))
+if missing_tables:
+    for table in missing_tables:
+        errors.append(f"Table '{table}' exists in SQLDelight but is missing from iOS DriverFactory")
+if extra_tables:
+    for table in extra_tables:
+        errors.append(f"Table '{table}' exists in iOS DriverFactory but not in SQLDelight")
+if not missing_tables and not extra_tables:
+    print(f"  OK: All {len(sql_tables)} tables present in both files")
+
+print("")
+print("Step 2: Checking full column parity...")
+for table in sorted(sql_tables):
+    if table not in ios_tables:
+        continue
+
+    sql_columns = sql_tables[table]
+    ios_columns = ios_tables[table]
+    column_count += len(sql_columns)
+
+    missing_columns = [column for column in sql_columns if column not in ios_columns]
+    extra_columns = [column for column in ios_columns if column not in sql_columns]
+
+    if missing_columns:
+        errors.append(
+            f"Table '{table}' is missing iOS columns: {', '.join(missing_columns)}"
+        )
+    if extra_columns:
+        errors.append(
+            f"Table '{table}' has extra iOS columns: {', '.join(extra_columns)}"
+        )
+    if not missing_columns and not extra_columns and sql_columns != ios_columns:
+        mismatches = []
+        for index, (sql_column, ios_column) in enumerate(zip(sql_columns, ios_columns), start=1):
+            if sql_column != ios_column:
+                mismatches.append(f"{index}: expected {sql_column}, found {ios_column}")
+        errors.append(
+            f"Table '{table}' column order differs between SQLDelight and iOS: "
+            + "; ".join(mismatches)
+        )
+
+if not errors:
+    print(f"  OK: All {column_count} SQLDelight columns match iOS definitions")
+
+print("")
+print("====================")
+if errors:
+    print(f"FAILED: Found {len(errors)} schema mismatch error(s)")
+    print("")
+    for error in errors:
+        print(f"  ERROR: {error}")
+    print("")
+    print("To fix: Update shared/src/iosMain/kotlin/.../DriverFactory.ios.kt")
+    print("        to match shared/src/commonMain/sqldelight/.../VitruvianDatabase.sq")
+    print("")
+    print("See: .planning/debug/resolved/issue-223-ios-fresh-install-sqlite-crash.md")
+    sys.exit(1)
+
+print("SUCCESS: iOS schema validation passed")
+print("")
+print(f"Tables checked: {len(sql_tables)}")
+print(f"Columns checked: {column_count}")
+PY

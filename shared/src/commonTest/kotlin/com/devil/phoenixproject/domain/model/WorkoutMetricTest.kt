@@ -3,6 +3,7 @@ package com.devil.phoenixproject.domain.model
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -106,27 +107,27 @@ class WorkoutSessionTest {
             estimatedCalories = 25f
         )
 
-        val summary = session.toSetSummary()
+        val summary = assertNotNull(session.toSetSummary())
 
-        assertEquals(15, summary?.repCount)
-        assertEquals(60000, summary?.durationMs)
-        assertEquals(100f, summary?.peakForceConcentricA)
-        assertEquals(95f, summary?.peakForceConcentricB)
-        assertEquals(120f, summary?.peakForceEccentricA)
-        assertEquals(115f, summary?.peakForceEccentricB)
-        assertEquals(80f, summary?.avgForceConcentricA)
-        assertEquals(75f, summary?.avgForceConcentricB)
-        assertEquals(90f, summary?.avgForceEccentricA)
-        assertEquals(85f, summary?.avgForceEccentricB)
-        assertEquals(50f, summary?.heaviestLiftKgPerCable)
-        assertEquals(1500f, summary?.totalVolumeKg)
-        assertEquals(25f, summary?.estimatedCalories)
-        assertEquals(10f, summary?.configuredWeightKgPerCable)
-        assertTrue(summary?.isEchoMode == true)
-        assertEquals(3, summary?.warmupReps)
-        assertEquals(10, summary?.workingReps)
+        assertEquals(15, summary.repCount)
+        assertEquals(60000, summary.durationMs)
+        assertEquals(100f, summary.peakForceConcentricA)
+        assertEquals(95f, summary.peakForceConcentricB)
+        assertEquals(120f, summary.peakForceEccentricA)
+        assertEquals(115f, summary.peakForceEccentricB)
+        assertEquals(80f, summary.avgForceConcentricA)
+        assertEquals(75f, summary.avgForceConcentricB)
+        assertEquals(90f, summary.avgForceEccentricA)
+        assertEquals(85f, summary.avgForceEccentricB)
+        assertEquals(50f, summary.heaviestLiftKgPerCable)
+        assertEquals(1500f, summary.totalVolumeKg)
+        assertEquals(25f, summary.estimatedCalories)
+        assertEquals(10f, summary.configuredWeightKgPerCable)
+        assertTrue(summary.isEchoMode)
+        assertEquals(3, summary.warmupReps)
+        assertEquals(10, summary.workingReps)
         // burnoutReps = 15 - 3 - 10 = 2
-        assertEquals(2, summary?.burnoutReps)
+        assertEquals(2, summary.burnoutReps)
     }
 
     @Test
@@ -136,7 +137,8 @@ class WorkoutSessionTest {
             totalReps = 8,
             peakForceConcentricA = 50f, // Enables hasSummaryMetrics
             heaviestLiftKg = null,
-            totalVolumeKg = null
+            totalVolumeKg = null,
+            cableCount = 2
         )
 
         val summary = session.toSetSummary()

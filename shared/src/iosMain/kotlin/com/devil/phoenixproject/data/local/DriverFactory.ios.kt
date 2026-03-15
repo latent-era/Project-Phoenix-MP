@@ -492,6 +492,7 @@ actual class DriverFactory {
                 avgForceEccentricB REAL,
                 heaviestLiftKg REAL,
                 totalVolumeKg REAL,
+                cableCount INTEGER,
                 estimatedCalories REAL,
                 warmupAvgWeightKg REAL,
                 workingAvgWeightKg REAL,
@@ -838,7 +839,7 @@ actual class DriverFactory {
         safeAddColumn(driver, "RoutineExercise", "stopAtTop", "INTEGER NOT NULL DEFAULT 0")
         safeAddColumn(driver, "RoutineExercise", "repCountTiming", "TEXT NOT NULL DEFAULT 'TOP'")
 
-        // WorkoutSession columns (migration 5 + 11 + 12)
+        // WorkoutSession columns (migration 5 + 11 + 12 + 13)
         safeAddColumn(driver, "WorkoutSession", "routineId", "TEXT")
         safeAddColumn(driver, "WorkoutSession", "peakForceConcentricA", "REAL")
         safeAddColumn(driver, "WorkoutSession", "peakForceConcentricB", "REAL")
@@ -850,6 +851,7 @@ actual class DriverFactory {
         safeAddColumn(driver, "WorkoutSession", "avgForceEccentricB", "REAL")
         safeAddColumn(driver, "WorkoutSession", "heaviestLiftKg", "REAL")
         safeAddColumn(driver, "WorkoutSession", "totalVolumeKg", "REAL")
+        safeAddColumn(driver, "WorkoutSession", "cableCount", "INTEGER")
         safeAddColumn(driver, "WorkoutSession", "estimatedCalories", "REAL")
         safeAddColumn(driver, "WorkoutSession", "warmupAvgWeightKg", "REAL")
         safeAddColumn(driver, "WorkoutSession", "workingAvgWeightKg", "REAL")
@@ -934,7 +936,7 @@ actual class DriverFactory {
         for (sql in indexes) {
             try {
                 driver.execute(null, sql, 0)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Index may already exist or be created with incompatible definition - that's fine
             }
         }
@@ -983,7 +985,7 @@ actual class DriverFactory {
                 0
             )
             exists
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -997,7 +999,7 @@ actual class DriverFactory {
         val fileManager = NSFileManager.defaultManager
         val urls = fileManager.URLsForDirectory(NSLibraryDirectory, NSUserDomainMask)
         @Suppress("UNCHECKED_CAST")
-        val libraryUrl = (urls as List<platform.Foundation.NSURL>).firstOrNull()
+        val libraryUrl = (urls as List<NSURL>).firstOrNull()
         val libraryPath = libraryUrl?.path ?: ""
         return "$libraryPath/vitruvian.db"
     }

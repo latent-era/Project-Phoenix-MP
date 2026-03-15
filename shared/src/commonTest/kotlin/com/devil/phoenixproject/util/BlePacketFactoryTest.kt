@@ -131,7 +131,10 @@ class BlePacketFactoryTest {
             weightPerCableKg = 20f
         )
 
-        val packet = BlePacketFactory.createProgramParams(params)
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
 
         assertEquals(96, packet.size)
     }
@@ -144,7 +147,10 @@ class BlePacketFactoryTest {
             weightPerCableKg = 20f
         )
 
-        val packet = BlePacketFactory.createProgramParams(params)
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
 
         assertEquals(0x04.toByte(), packet[0])
         assertEquals(0x00.toByte(), packet[1])
@@ -362,7 +368,10 @@ class BlePacketFactoryTest {
             isJustLift = true
         )
 
-        val packet = BlePacketFactory.createProgramParams(params)
+        val packet = BlePacketFactory.createProgramParams(
+            params,
+            variant = BlePacketFactory.ForceConfigVariant.OVERLAP
+        )
 
         // Just Lift must carry the actual operating target at 0x58.
         assertEquals(targetWeight - progression, readFloatLE(packet, 0x58))

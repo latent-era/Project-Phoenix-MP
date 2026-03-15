@@ -3,6 +3,21 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val injectedVersionCode = providers.gradleProperty("version.code").orNull?.let { raw ->
+    val parsed = raw.toIntOrNull()
+        ?: throw GradleException(
+            "Invalid -Pversion.code='$raw'. Expected an integer between 1 and 2100000000."
+        )
+
+    if (parsed !in 1..2_100_000_000) {
+        throw GradleException(
+            "Invalid -Pversion.code='$raw'. Expected an integer between 1 and 2100000000."
+        )
+    }
+
+    parsed
+}
+
 android {
     namespace = "com.devil.phoenixproject"
     compileSdk = 36
@@ -11,8 +26,8 @@ android {
         applicationId = "com.devil.phoenixproject"
         minSdk = 26
         targetSdk = 36
-        // CI can override versionCode via -Pversion.code=XXX
-        versionCode = (project.findProperty("version.code") as String?)?.toIntOrNull() ?: 3
+        // Fail fast if CI injects an invalid version code instead of silently shipping versionCode=3.
+        versionCode = injectedVersionCode ?: 3
         versionName = "0.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -124,8 +139,8 @@ dependencies {
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso)
     androidTestImplementation(platform(libs.compose.bom))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    androidTestImplementation("androidx.compose.ui:ui-test")
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.compose.ui.test)
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.truth)
@@ -133,5 +148,5 @@ dependencies {
     androidTestImplementation(libs.koin.test.junit4)
     androidTestImplementation(libs.multiplatform.settings.test)
     androidTestImplementation(libs.multiplatform.settings)
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    debugImplementation(libs.compose.ui.test.manifest)
 }

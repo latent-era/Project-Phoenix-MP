@@ -1,7 +1,12 @@
 name: Android Release APK
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
+    inputs:
+      versionCodeOverride:
+        description: 'Optional version code override (must be > current Play max and <= 2100000000)'
+        required: false
+        type: string
 
 permissions:
   contents: write  # Required to upload release assets
@@ -17,6 +22,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Authenticate to Google Play API
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}'
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -53,13 +66,90 @@ jobs:
           echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
           echo "Found latest release: $RELEASE_NAME (tag: $TAG_NAME)"
 
-      - name: Generate version code
+      - name: Resolve monotonic version code from Google Play
         id: version
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PACKAGE_NAME: com.devil.phoenixproject
+          VERSION_CODE_OVERRIDE: ${{ inputs.versionCodeOverride }}
         run: |
-          # Generate version code from date and run number (must fit in a 32-bit signed int)
-          VERSION_CODE=$(( $(date +%y%m%d) * 1000 + ${{ github.run_number }} % 1000 ))
-          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
-          echo "Version code: $VERSION_CODE"
+          set -euo pipefail
+
+          cleanup() {
+            if [ -n "${EDIT_ID:-}" ]; then
+              curl --silent --show-error --fail \
+                -X DELETE \
+                -H "Authorization: Bearer $ACCESS_TOKEN" \
+                "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$PACKAGE_NAME/edits/$EDIT_ID" \
+                >/dev/null || echo "Warning: failed to delete temporary Play edit $EDIT_ID" >&2
+            fi
+          }
+
+          trap cleanup EXIT
+
+          EDIT_RESPONSE="$(curl --silent --show-error --fail \
+            -X POST \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$PACKAGE_NAME/edits")"
+          EDIT_ID="$(printf '%s' "$EDIT_RESPONSE" | jq -r '.id // empty')"
+
+          if [ -z "$EDIT_ID" ]; then
+            echo "Failed to create a temporary Google Play edit." >&2
+            printf '%s\n' "$EDIT_RESPONSE" >&2
+            exit 1
+          fi
+
+          TRACKS_RESPONSE="$(curl --silent --show-error --fail \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$PACKAGE_NAME/edits/$EDIT_ID/tracks")"
+          PLAY_MAX_VERSION_CODE="$(printf '%s' "$TRACKS_RESPONSE" | jq -r '[.tracks[]?.releases[]?.versionCodes[]? | tonumber] | max // empty')"
+
+          if [ -n "$PLAY_MAX_VERSION_CODE" ]; then
+            PLAY_MAX_OUTPUT="$PLAY_MAX_VERSION_CODE"
+          else
+            PLAY_MAX_OUTPUT="none"
+            PLAY_MAX_VERSION_CODE=0
+          fi
+
+          OVERRIDE="$(printf '%s' "${VERSION_CODE_OVERRIDE:-}" | xargs)"
+          if [ -n "$OVERRIDE" ]; then
+            if ! [[ "$OVERRIDE" =~ ^[0-9]+$ ]]; then
+              echo "Invalid workflow input versionCodeOverride='$OVERRIDE'. Expected a positive integer <= 2100000000." >&2
+              exit 1
+            fi
+
+            SELECTED_VERSION_CODE="$OVERRIDE"
+            VERSION_CODE_SOURCE="manual_override"
+          else
+            if [ "$PLAY_MAX_OUTPUT" = "none" ]; then
+              echo "No existing Play version codes were found. Provide workflow_dispatch input versionCodeOverride to seed the next release." >&2
+              exit 1
+            fi
+
+            SELECTED_VERSION_CODE=$((PLAY_MAX_VERSION_CODE + 1))
+            VERSION_CODE_SOURCE="play_max_plus_one"
+          fi
+
+          if [ "$SELECTED_VERSION_CODE" -lt 1 ] || [ "$SELECTED_VERSION_CODE" -gt 2100000000 ]; then
+            echo "Selected version code $SELECTED_VERSION_CODE is outside the allowed range 1..2100000000." >&2
+            exit 1
+          fi
+
+          if [ "$PLAY_MAX_OUTPUT" != "none" ] && [ "$SELECTED_VERSION_CODE" -le "$PLAY_MAX_VERSION_CODE" ]; then
+            echo "Selected version code $SELECTED_VERSION_CODE must be greater than current Play max $PLAY_MAX_VERSION_CODE." >&2
+            exit 1
+          fi
+
+          echo "play_max_version_code=$PLAY_MAX_OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "selected_version_code=$SELECTED_VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "version_code_source=$VERSION_CODE_SOURCE" >> "$GITHUB_OUTPUT"
+
+          echo "::notice title=Google Play version preflight::play_max_version_code=$PLAY_MAX_OUTPUT selected_version_code=$SELECTED_VERSION_CODE source=$VERSION_CODE_SOURCE"
+          echo "Play max version code: $PLAY_MAX_OUTPUT"
+          echo "Selected version code: $SELECTED_VERSION_CODE"
+          echo "Version code source: $VERSION_CODE_SOURCE"
 
       - name: Build Release APK (signed)
         env:
@@ -74,7 +164,7 @@ jobs:
             -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
             -Pandroid.injected.signing.key.password="$KEY_PASSWORD" \
-            -Pversion.code=${{ steps.version.outputs.version_code }}
+            -Pversion.code=${{ steps.version.outputs.selected_version_code }}
           rm keystore.jks
 
       - name: Rename APK with version

@@ -31,8 +31,7 @@ class FakeWorkoutRepository : WorkoutRepository {
 
     // Test control methods
     fun addSession(session: WorkoutSession) {
-        val id = session.id ?: "session-${sessions.size}"
-        sessions[id] = session.copy(id = id)
+        sessions[session.id] = session
         updateSessionsFlow()
     }
 
@@ -74,8 +73,7 @@ class FakeWorkoutRepository : WorkoutRepository {
     override fun getAllSessions(): Flow<List<WorkoutSession>> = _sessionsFlow
 
     override suspend fun saveSession(session: WorkoutSession) {
-        val id = session.id ?: "session-${sessions.size}"
-        sessions[id] = session.copy(id = id)
+        sessions[session.id] = session
         updateSessionsFlow()
     }
 
