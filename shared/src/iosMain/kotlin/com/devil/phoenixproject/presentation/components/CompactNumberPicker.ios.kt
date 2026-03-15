@@ -120,6 +120,22 @@ actual fun CompactNumberPicker(
     val currentValue by rememberUpdatedState(value)
     val currentOnValueChange by rememberUpdatedState(onValueChange)
 
+    // True center index derived from current viewport/layout rather than first visible item.
+    val centeredVisibleIndex by remember(listState, values) {
+        derivedStateOf {
+            if (values.isEmpty()) {
+                0
+            } else {
+                val layoutInfo = listState.layoutInfo
+                val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+                val nearestCenteredItem = layoutInfo.visibleItemsInfo.minByOrNull { itemInfo ->
+                    abs((itemInfo.offset + itemInfo.size / 2) - viewportCenter)
+                }
+                (nearestCenteredItem?.index ?: listState.firstVisibleItemIndex).coerceIn(values.indices)
+            }
+        }
+    }
+
     // Keep list position valid and in sync when value/range changes.
     LaunchedEffect(values.size, safeCurrentIndex) {
         if (values.isNotEmpty()) {
@@ -168,7 +184,7 @@ actual fun CompactNumberPicker(
             }
         } else {
             // Parse failed - keep current scroll position value instead of defaulting to max
-            val currentScrollIndex = listState.firstVisibleItemIndex.coerceIn(values.indices)
+            val currentScrollIndex = centeredVisibleIndex.coerceIn(values.indices)
             val currentValue = values[currentScrollIndex]
             lastScrollSetValue = currentValue
             onValueChange(currentValue)
@@ -187,7 +203,7 @@ actual fun CompactNumberPicker(
         if (!isUserInteracting && !isEditing) {
             // Check if this is a genuine external value change (not from scroll)
             val externalValueChanged = abs(currentValue - lastScrollSetValue) > 0.001f
-            if (externalValueChanged && listState.firstVisibleItemIndex != currentIndex) {
+            if (externalValueChanged && centeredVisibleIndex != currentIndex) {
                 lastScrollSetValue = currentValue
                 listState.animateScrollToItem(currentIndex.coerceAtLeast(0))
             }
@@ -203,7 +219,7 @@ actual fun CompactNumberPicker(
             editSessionReady = false
             // Issue #166 Fix: Use the current scroll position value, not external value
             val currentScrollIndex = if (values.isNotEmpty()) {
-                listState.firstVisibleItemIndex.coerceIn(values.indices)
+                centeredVisibleIndex.coerceIn(values.indices)
             } else {
                 0
             }
@@ -235,7 +251,7 @@ actual fun CompactNumberPicker(
             isUserInteracting = true
         } else {
             // Scroll stopped - update the value
-            val centerIndex = listState.firstVisibleItemIndex
+            val centerIndex = centeredVisibleIndex.coerceIn(values.indices)
             if (centerIndex in values.indices) {
                 val scrollValue = values[centerIndex]
                 Logger.i { "PICKER_DEBUG[iOS]: centerIndex=$centerIndex, scrollValue=$scrollValue, currentValue=$currentValue, values.size=${values.size}" }
@@ -273,7 +289,7 @@ actual fun CompactNumberPicker(
             IconButton(
                 onClick = {
                     if (values.isNotEmpty()) {
-                        val baseIndex = listState.firstVisibleItemIndex.coerceIn(values.indices)
+                        val baseIndex = centeredVisibleIndex.coerceIn(values.indices)
                         val newIndex = (baseIndex - 1).coerceIn(values.indices)
                         if (newIndex != baseIndex) {
                             val newValue = values[newIndex]
@@ -320,7 +336,7 @@ actual fun CompactNumberPicker(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     itemsIndexed(values) { index, floatVal ->
-                        val isSelected = index == listState.firstVisibleItemIndex
+                        val isSelected = index == centeredVisibleIndex
 
                         Box(
                             modifier = Modifier
@@ -407,11 +423,7 @@ actual fun CompactNumberPicker(
                 }
 
                 if (showCenteredOverlay) {
-                    val previewIndex = if (isUserInteracting || listState.isScrollInProgress) {
-                        listState.firstVisibleItemIndex.coerceIn(values.indices)
-                    } else {
-                        safeCurrentIndex
-                    }
+                    val previewIndex = centeredVisibleIndex.coerceIn(values.indices)
                     Text(
                         text = formatValue(values[previewIndex]),
                         style = MaterialTheme.typography.headlineMedium,
@@ -443,7 +455,7 @@ actual fun CompactNumberPicker(
             IconButton(
                 onClick = {
                     if (values.isNotEmpty()) {
-                        val baseIndex = listState.firstVisibleItemIndex.coerceIn(values.indices)
+                        val baseIndex = centeredVisibleIndex.coerceIn(values.indices)
                         val newIndex = (baseIndex + 1).coerceIn(values.indices)
                         if (newIndex != baseIndex) {
                             val newValue = values[newIndex]
