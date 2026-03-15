@@ -24,17 +24,52 @@ import androidx.compose.ui.focus.onFocusChanged
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.devil.phoenixproject.presentation.util.LocalWindowSizeClass
+import com.devil.phoenixproject.presentation.util.WindowHeightSizeClass
 import kotlinx.coroutines.launch
 import co.touchlab.kermit.Logger
 import kotlin.math.abs
 import kotlin.math.roundToInt
+
+private data class PickerSizing(
+    val itemHeight: Dp,
+    val containerHeight: Dp,
+    val selectedTextStyle: TextStyle,
+    val unselectedTextStyle: TextStyle
+)
+
+@Composable
+private fun rememberPickerSizing(): PickerSizing {
+    val windowSizeClass = LocalWindowSizeClass.current
+    val fontScale = LocalDensity.current.fontScale
+    val typography = MaterialTheme.typography
+    val compactHeightMode =
+        windowSizeClass.heightSizeClass == WindowHeightSizeClass.Compact && fontScale <= 1.05f
+
+    val itemHeight = if (compactHeightMode) 34.dp else 40.dp
+    val selectedTextStyle = when {
+        compactHeightMode -> typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 26.sp)
+        fontScale > 1.15f -> typography.titleLarge
+        else -> typography.headlineMedium
+    }
+
+    return PickerSizing(
+        itemHeight = itemHeight,
+        containerHeight = itemHeight * 3,
+        selectedTextStyle = selectedTextStyle,
+        unselectedTextStyle = if (compactHeightMode) typography.bodyMedium else typography.bodyLarge
+    )
+}
 
 /**
  * iOS implementation using Compose-based scrollable picker.
@@ -98,6 +133,7 @@ actual fun CompactNumberPicker(
     val coroutineScope = rememberCoroutineScope()
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
     val focusManager = LocalFocusManager.current
+    val pickerSizing = rememberPickerSizing()
 
     // Inline editing state
     var isEditing by remember { mutableStateOf(false) }
@@ -298,9 +334,8 @@ actual fun CompactNumberPicker(
                 )
             }
 
-            // Scrollable picker - Item height is ~40dp (text + padding)
-            val itemHeight = 40.dp
-            val containerHeight = 120.dp
+            val itemHeight = pickerSizing.itemHeight
+            val containerHeight = pickerSizing.containerHeight
             // Center padding pushes first item to middle of container
             val centerPadding = (containerHeight - itemHeight) / 2
 
@@ -348,7 +383,7 @@ actual fun CompactNumberPicker(
                                         value = inputText,
                                         onValueChange = { inputText = it },
                                         textStyle = TextStyle(
-                                            fontSize = MaterialTheme.typography.headlineMedium.fontSize,
+                                            fontSize = pickerSizing.selectedTextStyle.fontSize,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface,
                                             textAlign = TextAlign.Center
@@ -394,9 +429,9 @@ actual fun CompactNumberPicker(
                                 Text(
                                     text = formatValue(floatVal),
                                     style = if (isSelected)
-                                        MaterialTheme.typography.headlineMedium
+                                        pickerSizing.selectedTextStyle
                                     else
-                                        MaterialTheme.typography.bodyLarge,
+                                        pickerSizing.unselectedTextStyle,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     textAlign = TextAlign.Center
@@ -414,7 +449,7 @@ actual fun CompactNumberPicker(
                     }
                     Text(
                         text = formatValue(values[previewIndex]),
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = pickerSizing.selectedTextStyle,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
@@ -427,14 +462,14 @@ actual fun CompactNumberPicker(
                 // Selection indicator lines - positioned to frame center item
                 HorizontalDivider(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = centerPadding - 2.dp),
+                        .align(Alignment.Center)
+                        .offset(y = -(itemHeight / 2)),
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 )
                 HorizontalDivider(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = centerPadding - 2.dp),
+                        .align(Alignment.Center)
+                        .offset(y = itemHeight / 2),
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 )
             }
