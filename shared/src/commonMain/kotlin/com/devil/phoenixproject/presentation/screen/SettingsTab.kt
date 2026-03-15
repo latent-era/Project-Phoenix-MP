@@ -1335,7 +1335,7 @@ fun SettingsTab(
                 Spacer(modifier = Modifier.width(Spacing.small))
                 Text(
                     "Link Portal Account",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             }

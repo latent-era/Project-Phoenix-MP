@@ -45,6 +45,11 @@
 -keep class io.ktor.utils.** { *; }
 -dontwarn io.ktor.**
 
+# ==================== OkHttp (Ktor Android engine) ====================
+-dontwarn okhttp3.**
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+
 # ==================== SQLDelight ====================
 -keep class com.devil.phoenixproject.database.** { *; }
 -keep class app.cash.sqldelight.** { *; }
