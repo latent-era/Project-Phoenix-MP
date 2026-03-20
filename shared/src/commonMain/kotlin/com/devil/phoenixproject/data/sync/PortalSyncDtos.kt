@@ -188,7 +188,8 @@ data class PortalRoutineExerciseSyncDto(
     val stallDetection: Boolean = true,
     val eccentricLoad: String? = null,
     val echoLevel: String? = null,
-    val perSetEchoLevels: String? = null // JSON array of echo level names
+    val perSetEchoLevels: String? = null, // JSON array of echo level names
+    val warmupSets: String? = null // JSON array of {reps, percentOfWorking}
 )
 
 // ─── Training Cycle Sync DTOs ─────────────────────────────────────
@@ -506,7 +507,8 @@ data class PullRoutineExerciseDto(
     val stallDetection: Boolean = true,
     val eccentricLoad: String? = null,
     val echoLevel: String? = null,
-    val perSetEchoLevels: String? = null // JSON array of echo level names
+    val perSetEchoLevels: String? = null, // JSON array of echo level names
+    val warmupSets: String? = null // JSON array of {reps, percentOfWorking}
 )
 
 /**

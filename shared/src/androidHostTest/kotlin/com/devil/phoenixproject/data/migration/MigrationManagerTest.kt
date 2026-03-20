@@ -222,7 +222,9 @@ class MigrationManagerTest {
             setWeightsPercentOfPR = null,
             stallDetectionEnabled = 1,
             stopAtTop = 0,
-            repCountTiming = "TOP"
+            repCountTiming = "TOP",
+            setEchoLevels = "",
+            warmupSets = ""
         )
     }
 

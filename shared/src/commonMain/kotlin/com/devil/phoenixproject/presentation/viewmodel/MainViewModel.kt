@@ -293,6 +293,9 @@ class MainViewModel constructor(
     fun toggleRestPause() = workoutSessionManager.toggleRestPause()
     fun resetRestTimer() = workoutSessionManager.resetRestTimer()
     val isRestPaused get() = workoutSessionManager.coordinator.isRestPaused
+    // Phase 35C: Variable warm-up set state
+    val currentWarmupSetIndex: StateFlow<Int> get() = workoutSessionManager.coordinator.currentWarmupSetIndex
+    val totalWarmupSets: StateFlow<Int> get() = workoutSessionManager.coordinator.totalWarmupSets
     fun startNextSet() = workoutSessionManager.startNextSet()
     fun logRpeForCurrentSet(rpe: Int) = workoutSessionManager.logRpeForCurrentSet(rpe)
 

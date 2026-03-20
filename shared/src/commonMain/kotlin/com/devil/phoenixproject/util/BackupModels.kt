@@ -143,7 +143,9 @@ data class RoutineExerciseBackup(
     // Per-exercise behavior overrides (PR #245)
     val stallDetectionEnabled: Boolean = true,
     val stopAtTop: Boolean = false,
-    val repCountTiming: String = "TOP"
+    val repCountTiming: String = "TOP",
+    // Variable warm-up sets (Phase 35C)
+    val warmupSets: String = ""
 )
 
 /**

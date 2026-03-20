@@ -483,6 +483,16 @@ class RoutineFlowManager(
             repCountTiming = firstExercise.repCountTiming
         )
 
+        // Phase 35C: Initialize warm-up phase for first exercise if it has warmupSets
+        if (firstExercise.warmupSets.isNotEmpty() && !isFirstBodyweight) {
+            coordinator._currentWarmupSetIndex.value = 0
+            coordinator._totalWarmupSets.value = firstExercise.warmupSets.size
+            Logger.d("RoutineFlowManager") { "Phase 35C: First exercise has ${firstExercise.warmupSets.size} warm-up sets" }
+        } else {
+            coordinator._currentWarmupSetIndex.value = -1
+            coordinator._totalWarmupSets.value = 0
+        }
+
         // Issue #188: Log computed params
         println("Issue188-Load: ║ COMPUTED WorkoutParameters:")
         println("Issue188-Load: ║   isAMRAP=${params.isAMRAP} (from firstSetReps == null || exercise.isAMRAP)")
@@ -799,6 +809,19 @@ class RoutineFlowManager(
                 repCountTiming = exercise.repCountTiming,
                 stopAtTop = exercise.stopAtTop
             )
+        }
+
+        // Phase 35C: Initialize warm-up phase when jumping to exercise with warmupSets
+        val isBodyweight = exercise.exercise.equipment.lowercase().let {
+            it == "bodyweight" || it == "body weight" || it == "none"
+        }
+        if (exercise.warmupSets.isNotEmpty() && !isBodyweight) {
+            coordinator._currentWarmupSetIndex.value = 0
+            coordinator._totalWarmupSets.value = exercise.warmupSets.size
+            Logger.d("RoutineFlowManager") { "Phase 35C: Entering warm-up phase for ${exercise.exercise.name}: ${exercise.warmupSets.size} warm-up sets" }
+        } else {
+            coordinator._currentWarmupSetIndex.value = -1
+            coordinator._totalWarmupSets.value = 0
         }
 
         coordinator._workoutState.value = WorkoutState.Idle

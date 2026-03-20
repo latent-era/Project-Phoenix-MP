@@ -85,8 +85,21 @@ data class WorkoutUiState(
     // Issue #237: Motion-triggered set start hold progress (0.0-1.0, null = not active)
     val motionStartHoldProgress: Float? = null,
     // Issue #297, #228: Rest timer pause state for UI display
-    val isRestPaused: Boolean = false
-)
+    val isRestPaused: Boolean = false,
+    // Phase 35C: Variable warm-up set state for HUD display
+    // -1 = not in warm-up phase, 0+ = current warm-up set index
+    val currentWarmupSetIndex: Int = -1,
+    // Total number of variable warm-up sets (0 if none)
+    val totalWarmupSets: Int = 0
+) {
+    /** True when currently executing a variable warm-up set (for HUD label) */
+    val isInVariableWarmup: Boolean get() = currentWarmupSetIndex >= 0
+
+    /** Label for warm-up set display, e.g., "Warm-up 2/3" (null when not in warm-up) */
+    val warmupSetLabel: String? get() =
+        if (isInVariableWarmup) "Warm-up ${currentWarmupSetIndex + 1}/$totalWarmupSets"
+        else null
+}
 
 /**
  * Action callbacks for WorkoutTab.

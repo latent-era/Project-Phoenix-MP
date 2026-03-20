@@ -1498,6 +1498,9 @@ class ActiveSessionEngine(
         coordinator._latestGhostVerdict.value = null
         coordinator.ghostRepComparisons.clear()
         coordinator.warmupCompleteTimeMs = 0
+        // Reset variable warm-up state
+        coordinator._currentWarmupSetIndex.value = -1
+        coordinator._totalWarmupSets.value = 0
     }
 
     fun recaptureLoadBaseline() {
@@ -1706,11 +1709,42 @@ class ActiveSessionEngine(
             println("Issue188: stopAtTop: ${effectiveParams.stopAtTop}")
             println("Issue188: stallDetection: ${effectiveParams.stallDetectionEnabled}")
 
-            val bleParams = if (isTimedCableExercise) {
-                Logger.d { "Duration cable: overriding isAMRAP=true for BLE command (prevents machine rep limit)" }
-                effectiveParams.copy(isAMRAP = true)
+            // ===== Variable Warm-up Sets (Phase 35C: Issue #30) =====
+            // When the exercise has warmupSets defined, override weight/reps for warm-up phase.
+            // Each warm-up set is a separate BLE stop/start cycle at a percentage of working weight.
+            val warmupSetIndex = coordinator._currentWarmupSetIndex.value
+            val isInWarmupPhase = warmupSetIndex >= 0
+            val warmupOverrideParams = if (isInWarmupPhase && currentExercise != null) {
+                val warmupSet = currentExercise.warmupSets.getOrNull(warmupSetIndex)
+                if (warmupSet != null) {
+                    val warmupWeight = (effectiveParams.weightPerCableKg * warmupSet.percentOfWorking / 100f)
+                        .coerceIn(0f, 110f)
+                    Logger.d { "WarmupSet ${warmupSetIndex + 1}/${currentExercise.warmupSets.size}: " +
+                        "${warmupSet.reps} reps @ ${warmupSet.percentOfWorking}% = ${warmupWeight}kg (working=${effectiveParams.weightPerCableKg}kg)" }
+                    effectiveParams.copy(
+                        weightPerCableKg = warmupWeight,
+                        reps = warmupSet.reps,
+                        warmupReps = 0, // No firmware warmup for variable warm-up sets
+                        isAMRAP = false  // Warm-up sets are always fixed reps
+                    )
+                } else {
+                    Logger.w { "WarmupSet index $warmupSetIndex out of bounds for ${currentExercise.warmupSets.size} warmup sets - falling through to working set" }
+                    coordinator._currentWarmupSetIndex.value = -1
+                    effectiveParams
+                }
             } else {
                 effectiveParams
+            }
+            // Update coordinator params if warm-up override applied
+            if (isInWarmupPhase && warmupOverrideParams !== effectiveParams) {
+                coordinator._workoutParameters.value = warmupOverrideParams
+            }
+
+            val bleParams = if (isTimedCableExercise) {
+                Logger.d { "Duration cable: overriding isAMRAP=true for BLE command (prevents machine rep limit)" }
+                warmupOverrideParams.copy(isAMRAP = true)
+            } else {
+                warmupOverrideParams
             }
 
             val command = if (bleParams.isEchoMode) {
@@ -2392,6 +2426,56 @@ class ActiveSessionEngine(
             } else {
                 Logger.d("handleSetCompletion: Skipping BLE stop (bodyweight exercise)")
             }
+
+            // ===== Phase 35C: Variable Warm-up Set Fast Path =====
+            // If we just completed a warm-up set, skip session save/summary/rest
+            // and immediately advance to the next warm-up set or working phase.
+            val warmupSetIdx = coordinator._currentWarmupSetIndex.value
+            if (warmupSetIdx >= 0 && currentExercise != null) {
+                val nextWarmupIdx = warmupSetIdx + 1
+                if (nextWarmupIdx < currentExercise.warmupSets.size) {
+                    // More warm-up sets remaining
+                    Logger.d { "Phase 35C: Warm-up set ${warmupSetIdx + 1}/${currentExercise.warmupSets.size} complete, advancing to warm-up ${nextWarmupIdx + 1}" }
+                    coordinator._currentWarmupSetIndex.value = nextWarmupIdx
+                    coordinator._hapticEvents.emit(HapticEvent.WORKOUT_END)
+                    // Reset for next warm-up set
+                    repCounter.resetCountsOnly()
+                    resetAutoStopState()
+                    coordinator.setCompletionInProgress = false
+                    coordinator.stopWorkoutInProgress = false
+                    // Restore working weight in params before startWorkout overrides it
+                    val workingWeight = currentExercise.setWeightsPerCableKg.getOrNull(0)
+                        ?: currentExercise.weightPerCableKg
+                    coordinator._workoutParameters.update { p ->
+                        p.copy(weightPerCableKg = workingWeight, reps = currentExercise.setReps.firstOrNull() ?: 10)
+                    }
+                    startWorkout(skipCountdown = true)
+                    return@launch
+                } else {
+                    // All warm-up sets done — transition to working phase
+                    Logger.d { "Phase 35C: All ${currentExercise.warmupSets.size} warm-up sets complete, transitioning to working sets" }
+                    coordinator._currentWarmupSetIndex.value = -1
+                    coordinator._hapticEvents.emit(HapticEvent.WORKOUT_END)
+                    // Reset for first working set
+                    repCounter.reset()
+                    resetAutoStopState()
+                    coordinator.setCompletionInProgress = false
+                    coordinator.stopWorkoutInProgress = false
+                    // Restore working weight/reps
+                    val workingWeight = currentExercise.setWeightsPerCableKg.getOrNull(0)
+                        ?: currentExercise.weightPerCableKg
+                    coordinator._workoutParameters.update { p ->
+                        p.copy(
+                            weightPerCableKg = workingWeight,
+                            reps = currentExercise.setReps.firstOrNull() ?: 10,
+                            warmupReps = Constants.DEFAULT_WARMUP_REPS
+                        )
+                    }
+                    startWorkout(skipCountdown = true)
+                    return@launch
+                }
+            }
+
             coordinator._hapticEvents.emit(HapticEvent.WORKOUT_END)
 
             // Just Lift: apply auto-accepted exercise detection before saving session
@@ -3014,6 +3098,15 @@ class ActiveSessionEngine(
 
             if (isChangingExercise) {
                 repCounter.reset()
+                // Phase 35C: Initialize warm-up phase for new exercise with warmupSets
+                if (nextSetIdx == 0 && nextExercise.warmupSets.isNotEmpty() && !nextIsBodyweight) {
+                    coordinator._currentWarmupSetIndex.value = 0
+                    coordinator._totalWarmupSets.value = nextExercise.warmupSets.size
+                    Logger.d { "Phase 35C: Entering warm-up phase for ${nextExercise.exercise.displayName}: ${nextExercise.warmupSets.size} warm-up sets" }
+                } else {
+                    coordinator._currentWarmupSetIndex.value = -1
+                    coordinator._totalWarmupSets.value = 0
+                }
             } else {
                 repCounter.resetCountsOnly()
             }

@@ -249,6 +249,14 @@ class SqlDelightWorkoutRepository(
                     emptyList()
                 }
 
+                val warmupSets: List<com.devil.phoenixproject.domain.model.WarmupSet> = try {
+                    if (row.warmupSets.isBlank()) emptyList()
+                    else json.decodeFromString<List<com.devil.phoenixproject.domain.model.WarmupSet>>(row.warmupSets)
+                } catch (e: Exception) {
+                    Logger.w(e) { "Failed to parse warmupSets '${row.warmupSets}' for exercise ${row.exerciseName}, using empty list" }
+                    emptyList()
+                }
+
                 val eccentricLoad = mapEccentricLoadFromDb(row.eccentricLoad)
                 val echoLevel = EchoLevel.values().getOrNull(row.echoLevel.toInt()) ?: EchoLevel.HARDER
 
@@ -296,7 +304,8 @@ class SqlDelightWorkoutRepository(
                     usePercentOfPR = row.usePercentOfPR == 1L,
                     weightPercentOfPR = row.weightPercentOfPR.toInt(),
                     prTypeForScaling = prTypeForScaling,
-                    setWeightsPercentOfPR = setWeightsPercentOfPR
+                    setWeightsPercentOfPR = setWeightsPercentOfPR,
+                    warmupSets = warmupSets
                 )
             } catch (e: Exception) {
                 Logger.e(e) { "Failed to map routine exercise: ${row.exerciseId}" }
@@ -551,7 +560,10 @@ class SqlDelightWorkoutRepository(
             repCountTiming = exercise.repCountTiming.name,
             // Per-set echo levels (stored as JSON array of nullable ordinals)
             setEchoLevels = if (exercise.setEchoLevels.isEmpty()) ""
-                else json.encodeToString(exercise.setEchoLevels.map { it?.ordinal })
+                else json.encodeToString(exercise.setEchoLevels.map { it?.ordinal }),
+            // Variable warm-up sets (Phase 35C)
+            warmupSets = if (exercise.warmupSets.isEmpty()) ""
+                else json.encodeToString(exercise.warmupSets)
         )
     }
 

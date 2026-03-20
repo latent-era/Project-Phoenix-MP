@@ -77,6 +77,9 @@ fun ActiveWorkoutScreen(
     val motionStartHoldProgress by viewModel.motionStartHoldProgress.collectAsState()
     // Issue #297, #228: Rest timer pause state
     val isRestPaused by viewModel.isRestPaused.collectAsState()
+    // Phase 35C: Variable warm-up set state
+    val currentWarmupSetIndex by viewModel.currentWarmupSetIndex.collectAsState()
+    val totalWarmupSets by viewModel.totalWarmupSets.collectAsState()
     @Suppress("UNUSED_VARIABLE") // Reserved for future connecting overlay
     val isAutoConnecting by viewModel.isAutoConnecting.collectAsState()
     val connectionError by viewModel.connectionError.collectAsState()
@@ -347,7 +350,8 @@ fun ActiveWorkoutScreen(
         gatedBiomechanicsResult, detectionState, hudPreset,
         isFormCheckEnabled, latestFormViolations, latestFormScore,
         gatedGhostSession, gatedGhostVerdict,
-        motionStartHoldProgress, isRestPaused
+        motionStartHoldProgress, isRestPaused,
+        currentWarmupSetIndex, totalWarmupSets
     ) {
         WorkoutUiState(
             connectionState = connectionState,
@@ -386,7 +390,9 @@ fun ActiveWorkoutScreen(
             ghostSession = gatedGhostSession,
             latestGhostVerdict = gatedGhostVerdict,
             motionStartHoldProgress = motionStartHoldProgress,
-            isRestPaused = isRestPaused
+            isRestPaused = isRestPaused,
+            currentWarmupSetIndex = currentWarmupSetIndex,
+            totalWarmupSets = totalWarmupSets
         )
     }
 

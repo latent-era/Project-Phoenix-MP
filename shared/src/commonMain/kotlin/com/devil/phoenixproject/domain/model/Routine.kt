@@ -1,6 +1,23 @@
 package com.devil.phoenixproject.domain.model
 
+import kotlinx.serialization.Serializable
 import kotlin.math.roundToInt
+
+/**
+ * A single warm-up set definition for a routine exercise.
+ *
+ * Warm-up sets execute before working sets with reduced weight.
+ * Each warm-up set is a full BLE stop/start cycle (same as between-set transitions),
+ * so weight changes are safe — no mid-exercise packet required.
+ *
+ * @param reps Number of repetitions for this warm-up set
+ * @param percentOfWorking Percentage of the working weight (e.g., 50 = 50%)
+ */
+@Serializable
+data class WarmupSet(
+    val reps: Int,
+    val percentOfWorking: Int // e.g., 50 = 50% of working weight
+)
 
 /**
  * Domain model for a workout routine
@@ -77,7 +94,11 @@ data class RoutineExercise(
     val usePercentOfPR: Boolean = false,           // Toggle: use % instead of absolute weight
     val weightPercentOfPR: Int = 80,               // Percentage (e.g., 80 = 80%)
     val prTypeForScaling: PRType = PRType.MAX_WEIGHT,  // Which PR type to scale from
-    val setWeightsPercentOfPR: List<Int> = emptyList() // Per-set percentages
+    val setWeightsPercentOfPR: List<Int> = emptyList(), // Per-set percentages
+    // Variable warm-up sets (Phase 35C: Issue #30)
+    // Each WarmupSet defines reps and a percentage of working weight.
+    // Executed before working sets as separate BLE stop/start cycles.
+    val warmupSets: List<WarmupSet> = emptyList()
 ) {
     /** Returns true if this exercise is part of a superset */
     val isInSuperset: Boolean get() = supersetId != null

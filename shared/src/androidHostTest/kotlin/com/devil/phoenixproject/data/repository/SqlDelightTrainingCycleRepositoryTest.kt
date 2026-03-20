@@ -220,7 +220,9 @@ class SqlDelightTrainingCycleRepositoryTest {
             setWeightsPercentOfPR = null,
             stallDetectionEnabled = 1L,
             stopAtTop = 0L,
-            repCountTiming = "TOP"
+            repCountTiming = "TOP",
+            setEchoLevels = "",
+            warmupSets = ""
         )
     }
 }

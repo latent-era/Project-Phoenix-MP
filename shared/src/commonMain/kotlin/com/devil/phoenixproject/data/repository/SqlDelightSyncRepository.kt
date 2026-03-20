@@ -486,7 +486,8 @@ class SqlDelightSyncRepository(
                             stallDetectionEnabled = if (exercise.stallDetection) 1L else 0L,
                             stopAtTop = if (exercise.stopAtPosition == "TOP") 1L else 0L,
                             repCountTiming = exercise.repCountTiming ?: "TOP",
-                            setEchoLevels = setEchoLevels
+                            setEchoLevels = setEchoLevels,
+                            warmupSets = exercise.warmupSets ?: ""
                         )
                     }
                 }

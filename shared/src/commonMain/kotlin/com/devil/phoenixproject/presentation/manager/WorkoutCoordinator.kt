@@ -206,6 +206,17 @@ class WorkoutCoordinator(
     internal val _currentSetRpe = MutableStateFlow<Int?>(null)
     val currentSetRpe: StateFlow<Int?> = _currentSetRpe.asStateFlow()
 
+    // ===== Variable Warm-up Sets (Phase 35C: Issue #30) =====
+    // Tracks which variable warm-up set we're currently executing.
+    // -1 = not in warm-up phase (executing working sets).
+    // 0+ = index into RoutineExercise.warmupSets list.
+    internal val _currentWarmupSetIndex = MutableStateFlow(-1)
+    val currentWarmupSetIndex: StateFlow<Int> = _currentWarmupSetIndex.asStateFlow()
+
+    // Total number of variable warm-up sets for the current exercise (0 if none)
+    internal val _totalWarmupSets = MutableStateFlow(0)
+    val totalWarmupSets: StateFlow<Int> = _totalWarmupSets.asStateFlow()
+
     // ===== Session Tracking =====
 
     internal var currentSessionId: String? = null

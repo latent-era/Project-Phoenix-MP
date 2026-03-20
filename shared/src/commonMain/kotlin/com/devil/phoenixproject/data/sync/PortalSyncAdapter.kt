@@ -429,7 +429,9 @@ object PortalSyncAdapter {
                             ListSerializer(String.serializer().nullable),
                             levels.map { it?.name }
                         )
-                    }
+                    },
+                warmupSets = ex.warmupSets.takeIf { it.isNotEmpty() }
+                    ?.let { Json.encodeToString(it) }
             )
         }
 

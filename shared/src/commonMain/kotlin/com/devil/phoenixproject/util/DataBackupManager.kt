@@ -232,7 +232,8 @@ abstract class BaseDataBackupManager(
                         setWeightsPercentOfPR = exercise.setWeightsPercentOfPR,
                         stallDetectionEnabled = exercise.stallDetectionEnabled != 0L,
                         stopAtTop = exercise.stopAtTop != 0L,
-                        repCountTiming = exercise.repCountTiming
+                        repCountTiming = exercise.repCountTiming,
+                        warmupSets = exercise.warmupSets
                     )
                 },
                 supersets = supersets.map { superset ->
@@ -588,7 +589,8 @@ abstract class BaseDataBackupManager(
                             stallDetectionEnabled = if (exercise.stallDetectionEnabled) 1L else 0L,
                             stopAtTop = if (exercise.stopAtTop) 1L else 0L,
                             repCountTiming = exercise.repCountTiming,
-                            setEchoLevels = exercise.setEchoLevels
+                            setEchoLevels = exercise.setEchoLevels,
+                            warmupSets = exercise.warmupSets
                         )
                         routineExercisesImported++
                     }
@@ -1358,7 +1360,8 @@ abstract class BaseDataBackupManager(
             setWeightsPercentOfPR = exercise.setWeightsPercentOfPR,
             stallDetectionEnabled = exercise.stallDetectionEnabled != 0L,
             stopAtTop = exercise.stopAtTop != 0L,
-            repCountTiming = exercise.repCountTiming
+            repCountTiming = exercise.repCountTiming,
+            warmupSets = exercise.warmupSets
         )
 
     private fun mapSupersetToBackup(superset: Superset): SupersetBackup =
