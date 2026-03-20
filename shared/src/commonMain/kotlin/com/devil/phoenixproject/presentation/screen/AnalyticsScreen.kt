@@ -449,9 +449,10 @@ fun AnalyticsScreen(
         }
     }
 
-    // Hoist format strings for use in coroutine callbacks (not composable scope)
-    val exportSuccessFormat = stringResource(Res.string.export_success, "__PLACEHOLDER__").replace("__PLACEHOLDER__", "%s")
-    val exportFailedFormat = stringResource(Res.string.export_failed, "__PLACEHOLDER__").replace("__PLACEHOLDER__", "%s")
+    // Hoist format templates for use in coroutine callbacks (not composable scope)
+    // Use __PLACEHOLDER__ as a marker to replace at runtime since stringResource is composable-only
+    val exportSuccessTemplate = stringResource(Res.string.export_success, "__PLACEHOLDER__")
+    val exportFailedTemplate = stringResource(Res.string.export_failed, "__PLACEHOLDER__")
 
     // Export / Import options dialog
     if (showExportMenu) {
@@ -479,11 +480,11 @@ fun AnalyticsScreen(
                                 isExporting = false
                                 result.fold(
                                     onSuccess = { path ->
-                                        exportMessage = exportSuccessFormat.format(path)
+                                        exportMessage = exportSuccessTemplate.replace("__PLACEHOLDER__", path)
                                         csvExporter.shareCSV(path, "personal_records.csv")
                                     },
                                     onFailure = { error ->
-                                        exportMessage = exportFailedFormat.format(error.message ?: "")
+                                        exportMessage = exportFailedTemplate.replace("__PLACEHOLDER__", error.message ?: "")
                                     }
                                 )
                                 showExportMenu = false
@@ -525,11 +526,11 @@ fun AnalyticsScreen(
                                 isExporting = false
                                 result.fold(
                                     onSuccess = { path ->
-                                        exportMessage = exportSuccessFormat.format(path)
+                                        exportMessage = exportSuccessTemplate.replace("__PLACEHOLDER__", path)
                                         csvExporter.shareCSV(path, "pr_progression.csv")
                                     },
                                     onFailure = { error ->
-                                        exportMessage = exportFailedFormat.format(error.message ?: "")
+                                        exportMessage = exportFailedTemplate.replace("__PLACEHOLDER__", error.message ?: "")
                                     }
                                 )
                                 showExportMenu = false
@@ -604,11 +605,11 @@ fun AnalyticsScreen(
                     isExporting = false
                     result.fold(
                         onSuccess = { path ->
-                            exportMessage = exportSuccessFormat.format(path)
+                            exportMessage = exportSuccessTemplate.replace("__PLACEHOLDER__", path)
                             csvExporter.shareCSV(path, "workout_history.csv")
                         },
                         onFailure = { error ->
-                            exportMessage = exportFailedFormat.format(error.message ?: "")
+                            exportMessage = exportFailedTemplate.replace("__PLACEHOLDER__", error.message ?: "")
                         }
                     )
                 }
