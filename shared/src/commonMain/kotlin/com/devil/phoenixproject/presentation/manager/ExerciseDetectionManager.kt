@@ -109,8 +109,14 @@ class ExerciseDetectionManager(
                 // Load user's exercise history for matching
                 val history = signatureRepository.getAllSignaturesAsMap()
 
+                // Resolve exercise names for history IDs so the classifier can
+                // return human-readable names instead of raw UUIDs.
+                val exerciseNames = history.keys.associateWith { id ->
+                    exerciseRepository.getExerciseById(id)?.name ?: id
+                }
+
                 // Classify the exercise
-                val classification = exerciseClassifier.classify(signature, history)
+                val classification = exerciseClassifier.classify(signature, history, exerciseNames)
 
                 Logger.d("ExerciseDetectionManager") {
                     "Exercise detected: ${classification.exerciseName} (${(classification.confidence * 100).toInt()}% confidence)"

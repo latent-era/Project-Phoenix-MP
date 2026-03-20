@@ -55,6 +55,66 @@ class ExerciseClassifierTest {
     }
 
     @Test
+    fun `classify history match uses exerciseNames map for display name`() {
+        val signature = ExerciseSignature(
+            romMm = 200f,
+            durationMs = 2000L,
+            symmetryRatio = 0.5f,
+            velocityProfile = VelocityShape.LINEAR,
+            cableConfig = CableUsage.DUAL_SYMMETRIC
+        )
+
+        val historySignature = ExerciseSignature(
+            romMm = 205f,
+            durationMs = 2050L,
+            symmetryRatio = 0.51f,
+            velocityProfile = VelocityShape.LINEAR,
+            cableConfig = CableUsage.DUAL_SYMMETRIC
+        )
+
+        val exerciseId = "a1b2c3d4-uuid-here"
+        val history = mapOf(exerciseId to historySignature)
+        val exerciseNames = mapOf(exerciseId to "Bench Press")
+
+        val result = classifier.classify(signature, history, exerciseNames)
+
+        assertEquals(ClassificationSource.HISTORY_MATCH, result.source)
+        assertEquals(exerciseId, result.exerciseId)
+        assertEquals("Bench Press", result.exerciseName,
+            "Should use human-readable name from exerciseNames, not the UUID")
+    }
+
+    @Test
+    fun `classify history match falls back to exerciseId when name not in map`() {
+        val signature = ExerciseSignature(
+            romMm = 200f,
+            durationMs = 2000L,
+            symmetryRatio = 0.5f,
+            velocityProfile = VelocityShape.LINEAR,
+            cableConfig = CableUsage.DUAL_SYMMETRIC
+        )
+
+        val historySignature = ExerciseSignature(
+            romMm = 205f,
+            durationMs = 2050L,
+            symmetryRatio = 0.51f,
+            velocityProfile = VelocityShape.LINEAR,
+            cableConfig = CableUsage.DUAL_SYMMETRIC
+        )
+
+        val exerciseId = "a1b2c3d4-uuid-here"
+        val history = mapOf(exerciseId to historySignature)
+
+        // No exerciseNames provided (default empty map)
+        val result = classifier.classify(signature, history)
+
+        assertEquals(ClassificationSource.HISTORY_MATCH, result.source)
+        assertEquals(exerciseId, result.exerciseId)
+        assertEquals(exerciseId, result.exerciseName,
+            "Should fall back to exerciseId when exerciseNames map is empty")
+    }
+
+    @Test
     fun `classify falls back to rules when no history`() {
         val signature = ExerciseSignature(
             romMm = 350f,  // Short ROM

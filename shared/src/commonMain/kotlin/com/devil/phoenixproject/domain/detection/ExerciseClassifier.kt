@@ -42,19 +42,22 @@ class ExerciseClassifier {
      *
      * @param signature The extracted exercise signature
      * @param history Map of exerciseId to stored signature from user's history
+     * @param exerciseNames Map of exerciseId to human-readable name for display
      * @return Classification result with confidence and source
      */
     fun classify(
         signature: ExerciseSignature,
-        history: Map<String, ExerciseSignature>
+        history: Map<String, ExerciseSignature>,
+        exerciseNames: Map<String, String> = emptyMap()
     ): ExerciseClassification {
         // First, try history matching
         if (history.isNotEmpty()) {
             val historyMatch = findBestHistoryMatch(signature, history)
             if (historyMatch != null && historyMatch.second >= HISTORY_MATCH_THRESHOLD) {
+                val exerciseId = historyMatch.first
                 return ExerciseClassification(
-                    exerciseId = historyMatch.first,
-                    exerciseName = historyMatch.first,
+                    exerciseId = exerciseId,
+                    exerciseName = exerciseNames[exerciseId] ?: exerciseId,
                     confidence = historyMatch.second,
                     alternates = emptyList(),
                     source = ClassificationSource.HISTORY_MATCH
