@@ -2,8 +2,15 @@ package com.devil.phoenixproject.domain.voice
 
 import co.touchlab.kermit.Logger
 import com.devil.phoenixproject.data.preferences.PreferencesManager
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 
 /**
  * Manages the lifecycle of safe word detection during workouts.
@@ -11,6 +18,9 @@ import kotlinx.coroutines.flow.emptyFlow
  * Starts listening when a workout begins (if enabled and calibrated),
  * stops when the workout ends or the app backgrounds.
  * The underlying [SafeWordListener] handles auto-restart on recognition gaps.
+ *
+ * Exposes a stable [detectedWord] flow that survives listener recreation,
+ * bridging the underlying listener's flow to a long-lived SharedFlow.
  *
  * Issue #141: Voice-activated emergency stop.
  */
@@ -23,6 +33,19 @@ class SafeWordDetectionManager(
     }
 
     private var listener: SafeWordListener? = null
+
+    /** Stable flow that outlives individual listener instances. */
+    private val _detectedWord = MutableSharedFlow<String>(extraBufferCapacity = 1)
+
+    /**
+     * Flow that emits the detected safe word each time it is recognized.
+     * This flow is stable across listener recreation — collectors established
+     * before [startForWorkout] will continue receiving emissions.
+     */
+    val detectedWord: SharedFlow<String> = _detectedWord.asSharedFlow()
+
+    /** Coroutine bridging the current listener's detectedWord to the stable flow. */
+    private var bridgeJob: Job? = null
 
     /**
      * Start safe word detection for the current workout.
@@ -48,7 +71,17 @@ class SafeWordDetectionManager(
         stop()
 
         Logger.i(TAG) { "Starting safe word detection for workout (word: \"$safeWord\")" }
-        listener = listenerFactory.create(safeWord).also { it.startListening() }
+        val newListener = listenerFactory.create(safeWord)
+        listener = newListener
+
+        // Bridge the listener's flow to our stable flow
+        bridgeJob = CoroutineScope(Dispatchers.Main + SupervisorJob()).launch {
+            newListener.detectedWord.collect { word ->
+                _detectedWord.tryEmit(word)
+            }
+        }
+
+        newListener.startListening()
     }
 
     /**
@@ -56,17 +89,12 @@ class SafeWordDetectionManager(
      * Safe to call even if not currently listening.
      */
     fun stop() {
+        bridgeJob?.cancel()
+        bridgeJob = null
         listener?.let {
             Logger.d(TAG) { "Stopping safe word detection" }
             it.stopListening()
         }
         listener = null
     }
-
-    /**
-     * Flow that emits the detected safe word each time it is recognized.
-     * Returns [emptyFlow] when no listener is active.
-     */
-    val detectedWord: Flow<String>
-        get() = listener?.detectedWord ?: emptyFlow()
 }
