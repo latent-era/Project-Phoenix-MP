@@ -318,6 +318,24 @@ fun JustLiftScreen(
                                 suffix = weightSuffix,
                                 modifier = Modifier.fillMaxWidth()
                             )
+
+                            // Issue #201: Show combined cable weight
+                            val totalDisplay = displayWeight * 2
+                            val totalText = if (totalDisplay % 1f == 0f) {
+                                totalDisplay.toInt().toString()
+                            } else {
+                                // Round to 1 decimal place for KMP compatibility (no String.format)
+                                val rounded = (totalDisplay * 10).toInt() / 10f
+                                rounded.toString()
+                            }
+                            val totalFormatted = "$totalText $weightSuffix"
+                            Text(
+                                text = "Total: $totalFormatted",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
 
