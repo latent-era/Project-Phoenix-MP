@@ -159,4 +159,8 @@ class FakePreferencesManager : PreferencesManager {
     override suspend fun setAutoBackupEnabled(enabled: Boolean) {
         _preferencesFlow.value = _preferencesFlow.value.copy(autoBackupEnabled = enabled)
     }
+
+    override suspend fun setLanguage(language: String) {
+        _preferencesFlow.value = _preferencesFlow.value.copy(language = language)
+    }
 }
