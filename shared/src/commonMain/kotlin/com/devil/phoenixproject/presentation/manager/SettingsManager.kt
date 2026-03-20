@@ -148,6 +148,10 @@ class SettingsManager(
         scope.launch { preferencesManager.setMotionStartEnabled(enabled) }
     }
 
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        scope.launch { preferencesManager.setAutoBackupEnabled(enabled) }
+    }
+
     fun setColorScheme(schemeIndex: Int) {
         scope.launch {
             bleRepository.setColorScheme(schemeIndex)

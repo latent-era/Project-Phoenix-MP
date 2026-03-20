@@ -34,7 +34,9 @@ data class UserPreferences(
     val countdownBeepsEnabled: Boolean = true,  // Beeps during last 10s of rest timer
     val repSoundEnabled: Boolean = true,  // Sound on rep completion
     // Issue #237: Motion-triggered set start (opt-in alternative to 5-second countdown)
-    val motionStartEnabled: Boolean = false  // Start sets by holding cables instead of countdown
+    val motionStartEnabled: Boolean = false,  // Start sets by holding cables instead of countdown
+    // Issue #293: Per-session auto-backup to device filesystem
+    val autoBackupEnabled: Boolean = false  // Automatically save each workout to a local backup file
 ) {
     /**
      * Get the effective weight increment in the user's display unit.

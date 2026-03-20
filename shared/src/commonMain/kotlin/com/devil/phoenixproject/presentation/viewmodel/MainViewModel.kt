@@ -41,6 +41,7 @@ import com.devil.phoenixproject.presentation.manager.DefaultWorkoutSessionManage
 import com.devil.phoenixproject.presentation.manager.ExerciseDetectionManager
 import com.devil.phoenixproject.presentation.manager.JustLiftDefaults
 import com.devil.phoenixproject.presentation.manager.ResumableProgressInfo
+import com.devil.phoenixproject.util.DataBackupManager
 
 // HistoryItem, SingleSessionHistoryItem, GroupedRoutineHistoryItem moved to
 // com.devil.phoenixproject.presentation.manager.HistoryManager
@@ -68,7 +69,8 @@ class MainViewModel constructor(
     private val repMetricRepository: RepMetricRepository,
     private val biomechanicsRepository: BiomechanicsRepository,
     private val resolveWeightsUseCase: ResolveRoutineWeightsUseCase,
-    private val detectionManager: ExerciseDetectionManager
+    private val detectionManager: ExerciseDetectionManager,
+    private val dataBackupManager: DataBackupManager
 ) : ViewModel() {
 
     // Shared haptic events flow - created here, passed to both GamificationManager and WorkoutSessionManager
@@ -106,6 +108,7 @@ class MainViewModel constructor(
         resolveWeightsUseCase = resolveWeightsUseCase,
         settingsManager = settingsManager,
         detectionManager = detectionManager,
+        dataBackupManager = dataBackupManager,
         scope = viewModelScope,
         _hapticEvents = _hapticEvents
     )
@@ -262,6 +265,7 @@ class MainViewModel constructor(
     fun setCountdownBeepsEnabled(enabled: Boolean) = settingsManager.setCountdownBeepsEnabled(enabled)
     fun setRepSoundEnabled(enabled: Boolean) = settingsManager.setRepSoundEnabled(enabled)
     fun setMotionStartEnabled(enabled: Boolean) = settingsManager.setMotionStartEnabled(enabled)
+    fun setAutoBackupEnabled(enabled: Boolean) = settingsManager.setAutoBackupEnabled(enabled)
     fun kgToDisplay(kg: Float, unit: WeightUnit) = settingsManager.kgToDisplay(kg, unit)
     fun displayToKg(display: Float, unit: WeightUnit) = settingsManager.displayToKg(display, unit)
     fun formatWeight(kg: Float, unit: WeightUnit) = settingsManager.formatWeight(kg, unit)

@@ -31,6 +31,13 @@ class AndroidDataBackupManager(
             return dir
         }
 
+    override fun getSessionBackupDirectory(): String {
+        val dir = context.getExternalFilesDir("PhoenixBackups")
+            ?: File(context.filesDir, "PhoenixBackups")
+        if (!dir.exists()) dir.mkdirs()
+        return dir.absolutePath
+    }
+
     override fun createBackupWriter(): BackupJsonWriter {
         val timestamp = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd")
             .replace("-", "") + "_" +

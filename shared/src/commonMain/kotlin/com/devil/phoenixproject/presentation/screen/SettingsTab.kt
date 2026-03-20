@@ -128,8 +128,10 @@ fun SettingsTab(
     // Optimistic UI state for immediate visual feedback
     var localWeightUnit by remember(weightUnit) { mutableStateOf(weightUnit) }
 
-    // Inject DataBackupManager
+    // Inject DataBackupManager and PreferencesManager for auto-backup toggle
     val backupManager: DataBackupManager = koinInject()
+    val preferencesManager: com.devil.phoenixproject.data.preferences.PreferencesManager = koinInject()
+    val autoBackupEnabled by preferencesManager.preferencesFlow.collectAsState()
     // Inject SubscriptionManager for tier gating
     val subscriptionManager: SubscriptionManager = koinInject()
     // Inject SyncTriggerManager for sync error indicator
@@ -1245,6 +1247,35 @@ fun SettingsTab(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
+                Spacer(modifier = Modifier.height(Spacing.small))
+
+                // Auto-backup toggle (Phase 36)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Auto-Backup Workouts",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Automatically save each workout to a local backup file",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = autoBackupEnabled.autoBackupEnabled,
+                        onCheckedChange = { enabled ->
+                            scope.launch { preferencesManager.setAutoBackupEnabled(enabled) }
+                        }
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(Spacing.small))
 
                 // Backup Button

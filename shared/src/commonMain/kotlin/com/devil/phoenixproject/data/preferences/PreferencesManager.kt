@@ -133,6 +133,8 @@ interface PreferencesManager {
     suspend fun setRepSoundEnabled(enabled: Boolean)
     // Issue #237: Motion-triggered set start
     suspend fun setMotionStartEnabled(enabled: Boolean)
+    // Issue #293: Per-session auto-backup
+    suspend fun setAutoBackupEnabled(enabled: Boolean)
 
     suspend fun getSingleExerciseDefaults(exerciseId: String): SingleExerciseDefaults?
     suspend fun saveSingleExerciseDefaults(defaults: SingleExerciseDefaults)
@@ -186,6 +188,7 @@ class SettingsPreferencesManager(
         private const val KEY_COUNTDOWN_BEEPS_ENABLED = "countdown_beeps_enabled"
         private const val KEY_REP_SOUND_ENABLED = "rep_sound_enabled"
         private const val KEY_MOTION_START = "motion_start_enabled"
+        private const val KEY_AUTO_BACKUP_ENABLED = "auto_backup_enabled"
     }
 
     private val _preferencesFlow = MutableStateFlow(loadPreferences())
@@ -220,7 +223,8 @@ class SettingsPreferencesManager(
             bodyWeightKg = settings.getFloat(KEY_BODY_WEIGHT_KG, 0f),
             countdownBeepsEnabled = settings.getBoolean(KEY_COUNTDOWN_BEEPS_ENABLED, true),
             repSoundEnabled = settings.getBoolean(KEY_REP_SOUND_ENABLED, true),
-            motionStartEnabled = settings.getBoolean(KEY_MOTION_START, false)
+            motionStartEnabled = settings.getBoolean(KEY_MOTION_START, false),
+            autoBackupEnabled = settings.getBoolean(KEY_AUTO_BACKUP_ENABLED, false)
         )
     }
 
@@ -409,5 +413,10 @@ class SettingsPreferencesManager(
     override suspend fun setMotionStartEnabled(enabled: Boolean) {
         settings.putBoolean(KEY_MOTION_START, enabled)
         updateAndEmit { copy(motionStartEnabled = enabled) }
+    }
+
+    override suspend fun setAutoBackupEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_AUTO_BACKUP_ENABLED, enabled)
+        updateAndEmit { copy(autoBackupEnabled = enabled) }
     }
 }

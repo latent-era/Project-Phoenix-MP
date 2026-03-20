@@ -22,6 +22,7 @@ import com.devil.phoenixproject.domain.replay.RepBoundaryDetector
 import com.devil.phoenixproject.domain.usecase.RepCounterFromMachine
 import com.devil.phoenixproject.util.BlePacketFactory
 import com.devil.phoenixproject.util.Constants
+import com.devil.phoenixproject.util.DataBackupManager
 import com.devil.phoenixproject.util.KmpUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -64,7 +65,8 @@ class ActiveSessionEngine(
     private val biomechanicsRepository: BiomechanicsRepository,
     private val settingsManager: SettingsManager,
     private val scope: CoroutineScope,
-    private val detectionManager: ExerciseDetectionManager? = null
+    private val detectionManager: ExerciseDetectionManager? = null,
+    private val dataBackupManager: DataBackupManager? = null
 ) {
 
     /**
@@ -2332,6 +2334,14 @@ class ActiveSessionEngine(
         }
 
         Logger.d("Saved workout session: $sessionId with ${metricsSnapshot.size} metrics")
+
+        // Per-session auto-backup (Phase 36): fire-and-forget, never blocks the save flow
+        if (preferencesManager.preferencesFlow.value.autoBackupEnabled && dataBackupManager != null) {
+            scope.launch {
+                dataBackupManager.exportSession(sessionId)
+                    .onFailure { e -> Logger.w(e) { "Auto-backup failed for session $sessionId" } }
+            }
+        }
 
         var completedSetId: String? = null
         if (params.selectedExerciseId != null && working > 0) {

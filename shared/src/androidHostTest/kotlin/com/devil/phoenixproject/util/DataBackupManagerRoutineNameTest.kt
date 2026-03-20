@@ -439,5 +439,11 @@ class DataBackupManagerRoutineNameTest {
         }
 
         override suspend fun shareBackup() = Unit
+
+        override fun getSessionBackupDirectory(): String {
+            val dir = File(System.getProperty("java.io.tmpdir"), "PhoenixBackupsTest")
+            if (!dir.exists()) dir.mkdirs()
+            return dir.absolutePath
+        }
     }
 }

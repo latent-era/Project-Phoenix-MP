@@ -52,6 +52,20 @@ class IosDataBackupManager(
             return dir
         }
 
+    override fun getSessionBackupDirectory(): String {
+        val dir = "$documentsDirectory/PhoenixBackups"
+        if (!fileManager.fileExistsAtPath(dir)) {
+            val url = NSURL.fileURLWithPath(dir)
+            fileManager.createDirectoryAtURL(
+                url,
+                withIntermediateDirectories = true,
+                attributes = null,
+                error = null
+            )
+        }
+        return dir
+    }
+
     override fun createBackupWriter(): BackupJsonWriter {
         val timestamp = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd")
             .replace("-", "") + "_" +

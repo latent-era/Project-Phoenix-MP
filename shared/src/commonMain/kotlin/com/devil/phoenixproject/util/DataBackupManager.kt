@@ -55,6 +55,13 @@ interface DataBackupManager {
      * Share backup via platform share sheet (Android Intent, iOS UIActivityViewController)
      */
     suspend fun shareBackup()
+
+    /**
+     * Export a single workout session (and its metrics) to a JSON file on the device filesystem.
+     * The output is a valid BackupData with a single-element sessions list, compatible with import.
+     * Returns the file path of the written backup on success.
+     */
+    suspend fun exportSession(sessionId: String): Result<String>
 }
 
 /**
@@ -84,6 +91,14 @@ abstract class BaseDataBackupManager(
      * Copies/moves the temp file to the platform's standard backup location.
      */
     protected abstract suspend fun finalizeExport(tempFilePath: String): Result<String>
+
+    /**
+     * Returns the platform-specific directory path for session auto-backups.
+     * - Android: `getExternalFilesDir("PhoenixBackups")` (no permissions required)
+     * - iOS: app Documents directory (UIFileSharingEnabled = true in Info.plist)
+     * The directory is created if it does not exist.
+     */
+    protected abstract fun getSessionBackupDirectory(): String
 
     private data class RoutineNameResolutionContext(
         val routineNameById: Map<String, String>,
@@ -1506,4 +1521,64 @@ abstract class BaseDataBackupManager(
             createdAt = up.createdAt,
             isActive = up.isActive != 0L
         )
+
+    // -- Per-session auto-backup (Phase 36) --
+
+    override suspend fun exportSession(sessionId: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val session = queries.selectSessionById(sessionId).executeAsOneOrNull()
+                ?: return@withContext Result.failure(Exception("Session not found: $sessionId"))
+
+            val metrics = queries.selectMetricsBySession(sessionId).executeAsList()
+
+            // Build a minimal BackupData with just this session (import-compatible)
+            val backupData = BackupData(
+                version = 1,
+                exportedAt = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd") + "T" +
+                        KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "HH:mm:ss") + "Z",
+                appVersion = Constants.APP_VERSION,
+                data = BackupContent(
+                    workoutSessions = listOf(mapSessionToBackup(session)),
+                    metricSamples = metrics.map { mapMetricToBackup(it) }
+                )
+            )
+
+            val jsonString = json.encodeToString(backupData)
+
+            // Build filename: phoenix-workout-{ISO-date}-{sessionId}.json
+            val isoDate = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd")
+            val shortSessionId = sessionId.take(8)
+            val fileName = "phoenix-workout-$isoDate-$shortSessionId.json"
+
+            val backupDir = getSessionBackupDirectory()
+            val filePath = "$backupDir/$fileName"
+
+            writeSessionBackupFile(filePath, jsonString)
+
+            Logger.d { "Auto-backup saved: $filePath (${jsonString.length} bytes)" }
+            Result.success(filePath)
+        } catch (e: Exception) {
+            Logger.e(e) { "Auto-backup failed for session $sessionId" }
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Write backup JSON content to a file at the given path.
+     * Platform subclasses override this with native file I/O.
+     */
+    protected open fun writeSessionBackupFile(filePath: String, content: String) {
+        // Default implementation using BackupJsonWriter (works on both platforms)
+        val writer = BackupJsonWriter(filePath)
+        try {
+            writer.open()
+            writer.write(content)
+            writer.flush()
+            writer.close()
+        } catch (e: Exception) {
+            runCatching { writer.close() }
+            runCatching { writer.delete() }
+            throw e
+        }
+    }
 }

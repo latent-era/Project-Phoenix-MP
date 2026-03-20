@@ -155,4 +155,8 @@ class FakePreferencesManager : PreferencesManager {
     override suspend fun setMotionStartEnabled(enabled: Boolean) {
         _preferencesFlow.value = _preferencesFlow.value.copy(motionStartEnabled = enabled)
     }
+
+    override suspend fun setAutoBackupEnabled(enabled: Boolean) {
+        _preferencesFlow.value = _preferencesFlow.value.copy(autoBackupEnabled = enabled)
+    }
 }

@@ -15,6 +15,7 @@ import com.devil.phoenixproject.data.sync.SyncTriggerManager
 import com.devil.phoenixproject.domain.model.*
 import com.devil.phoenixproject.domain.usecase.RepCounterFromMachine
 import com.devil.phoenixproject.domain.usecase.ResolveRoutineWeightsUseCase
+import com.devil.phoenixproject.util.DataBackupManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -131,6 +132,7 @@ class DefaultWorkoutSessionManager(
     private val resolveWeightsUseCase: ResolveRoutineWeightsUseCase,
     private val settingsManager: SettingsManager,
     val detectionManager: ExerciseDetectionManager,
+    private val dataBackupManager: DataBackupManager? = null,
     private val scope: CoroutineScope,
     private val _hapticEvents: MutableSharedFlow<HapticEvent> = MutableSharedFlow(
         extraBufferCapacity = 10,
@@ -179,7 +181,8 @@ class DefaultWorkoutSessionManager(
         biomechanicsRepository = biomechanicsRepository,
         settingsManager = settingsManager,
         scope = scope,
-        detectionManager = detectionManager
+        detectionManager = detectionManager,
+        dataBackupManager = dataBackupManager
     )
 
     // ===== LED Biofeedback Controller =====

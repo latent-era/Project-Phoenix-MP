@@ -15,6 +15,7 @@ import com.devil.phoenixproject.testutil.FakePreferencesManager
 import com.devil.phoenixproject.testutil.FakeTrainingCycleRepository
 import com.devil.phoenixproject.testutil.FakeWorkoutRepository
 import com.devil.phoenixproject.testutil.FakeBiomechanicsRepository
+import com.devil.phoenixproject.testutil.FakeDataBackupManager
 import com.devil.phoenixproject.testutil.FakeRepMetricRepository
 import com.devil.phoenixproject.testutil.TestCoroutineRule
 import com.devil.phoenixproject.domain.detection.ExerciseClassifier
@@ -94,7 +95,8 @@ class WorkoutFlowE2ETest {
             repMetricRepository = fakeRepMetricRepository,
             biomechanicsRepository = FakeBiomechanicsRepository(),
             resolveWeightsUseCase = resolveWeightsUseCase,
-            detectionManager = detectionManager
+            detectionManager = detectionManager,
+            dataBackupManager = FakeDataBackupManager()
         )
 
         robot = WorkoutRobot(viewModel, fakeBleRepository)
