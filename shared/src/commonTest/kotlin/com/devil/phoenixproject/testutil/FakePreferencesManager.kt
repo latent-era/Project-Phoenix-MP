@@ -150,4 +150,8 @@ class FakePreferencesManager : PreferencesManager {
     override suspend fun setRepSoundEnabled(enabled: Boolean) {
         _preferencesFlow.value = _preferencesFlow.value.copy(repSoundEnabled = enabled)
     }
+
+    override suspend fun setMotionStartEnabled(enabled: Boolean) {
+        _preferencesFlow.value = _preferencesFlow.value.copy(motionStartEnabled = enabled)
+    }
 }

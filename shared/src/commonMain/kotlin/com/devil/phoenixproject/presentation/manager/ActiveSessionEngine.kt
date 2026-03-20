@@ -174,11 +174,10 @@ class ActiveSessionEngine(
                 val currentState = coordinator._workoutState.value
                 val isIdle = currentState is WorkoutState.Idle
                 val isSummaryAndJustLift = currentState is WorkoutState.SetSummary && params.isJustLift
-                val isRestingAndJustLift = currentState is WorkoutState.Resting && params.isJustLift
 
                 // Handle auto-START when Idle and waiting for handles
-                // Also allow auto-start from SetSummary or Resting if in Just Lift mode (interrupting to start next set)
-                if (params.useAutoStart && (isIdle || isSummaryAndJustLift || isRestingAndJustLift)) {
+                // Also allow auto-start from SetSummary if in Just Lift mode (interrupting to start next set)
+                if (params.useAutoStart && (isIdle || isSummaryAndJustLift)) {
                     when (activityState) {
                         HandleState.Grabbed -> {
                             Logger.d("Handles grabbed! Starting auto-start timer (State: ${coordinator._workoutState.value})")
@@ -2538,23 +2537,21 @@ class ActiveSessionEngine(
 
                 if (skipSummary) {
                     Logger.d("Just Lift: Summary OFF - skipping summary")
+                    resetForNewWorkout()
+                    coordinator._workoutState.value = WorkoutState.Idle
                     if (justLiftRestSeconds > 0) {
-                        startJustLiftRestTimer(justLiftRestSeconds)
-                    } else {
-                        resetForNewWorkout()
-                        coordinator._workoutState.value = WorkoutState.Idle
+                        startJustLiftEggTimer(justLiftRestSeconds)
                     }
                 } else if (summaryDelayMs > 0) {
                     delay(summaryDelayMs)
 
                     if (coordinator._workoutState.value is WorkoutState.SetSummary) {
+                        Logger.d("Just Lift: Summary complete, transitioning to Idle")
+                        resetForNewWorkout()
+                        coordinator._workoutState.value = WorkoutState.Idle
                         if (justLiftRestSeconds > 0) {
-                            Logger.d("Just Lift: Summary complete, starting rest timer ($justLiftRestSeconds s)")
-                            startJustLiftRestTimer(justLiftRestSeconds)
-                        } else {
-                            Logger.d("Just Lift: Summary complete, UI transitioning to Idle")
-                            resetForNewWorkout()
-                            coordinator._workoutState.value = WorkoutState.Idle
+                            Logger.d("Just Lift: Starting egg timer ($justLiftRestSeconds s)")
+                            startJustLiftEggTimer(justLiftRestSeconds)
                         }
                     } else {
                         Logger.d("Just Lift: Summary interrupted by user action (state is ${coordinator._workoutState.value})")
@@ -2741,7 +2738,11 @@ class ActiveSessionEngine(
             // Each 100ms tick checks _isRestPaused; when paused, time does not decrement.
             // _restSecondsRemaining is the source of truth — extendRestTime() and resetRestTimer()
             // mutate it directly and the loop picks up the new value on the next tick.
-            while (coordinator._restSecondsRemaining.value > 0 && isActive) {
+            //
+            // In non-autoplay mode, the loop continues at 0 so +30s/Reset remain functional.
+            // It exits only when autoplay advances, or skipRest/startNextSet is called externally.
+            var hasReachedZero = false
+            while (isActive) {
                 val remainingSeconds = coordinator._restSecondsRemaining.value
 
                 // Issue #100: Emit countdown tick during last 10 seconds of rest
@@ -2765,10 +2766,22 @@ class ActiveSessionEngine(
                     supersetLabel = supersetLabel
                 )
 
+                // In autoplay mode, break when timer hits 0 to auto-advance
+                if (remainingSeconds <= 0 && autoplay) break
+                // Track zero-crossing for beeps reset
+                if (remainingSeconds <= 0) {
+                    if (!hasReachedZero) {
+                        hasReachedZero = true
+                        coordinator.ledFeedbackController?.onRestPeriodEnd()
+                    }
+                } else {
+                    hasReachedZero = false
+                }
+
                 delay(100)
 
-                // Decrement once per second, but only when not paused
-                if (!coordinator._isRestPaused.value) {
+                // Decrement once per second, but only when not paused and remaining > 0
+                if (remainingSeconds > 0 && !coordinator._isRestPaused.value) {
                     val now = currentTimeMillis()
                     if (now - lastDecrementTime >= 1000L) {
                         coordinator._restSecondsRemaining.value =
@@ -2776,8 +2789,8 @@ class ActiveSessionEngine(
                         lastDecrementTime = now
                     }
                 } else {
-                    // While paused, keep resetting the decrement anchor so we don't
-                    // get a burst of decrements when unpaused.
+                    // While paused (or at zero), keep resetting the decrement anchor so we don't
+                    // get a burst of decrements when unpaused or extended.
                     lastDecrementTime = currentTimeMillis()
                 }
             }
@@ -2786,7 +2799,9 @@ class ActiveSessionEngine(
             coordinator._isRestPaused.value = false
 
             // LED Biofeedback: resume normal feedback after rest
-            coordinator.ledFeedbackController?.onRestPeriodEnd()
+            if (!hasReachedZero) {
+                coordinator.ledFeedbackController?.onRestPeriodEnd()
+            }
 
             if (autoplay) {
                 Logger.d("ActiveSessionEngine") { "autoplay rest complete: advancing to next set (no BLE stop - already sent at set end)" }
@@ -2795,106 +2810,53 @@ class ActiveSessionEngine(
                 } else {
                     startNextSetOrExercise()
                 }
-            } else {
-                coordinator._workoutState.value = WorkoutState.Resting(
-                    restSecondsRemaining = 0,
-                    nextExerciseName = flowDelegate?.calculateNextExerciseName(isSingleExercise, currentExercise, routine) ?: "",
-                    isLastExercise = isLastExerciseOverall,
-                    currentSet = displaySetIndex,
-                    totalSets = displayTotalSets,
-                    isSupersetTransition = useSupersetQuickRest,
-                    supersetLabel = supersetLabel
-                )
             }
         }
     }
 
     /**
-     * Start a simplified rest timer for Just Lift mode.
-     * Unlike the routine rest timer, this doesn't compute next-exercise metadata or advance
-     * to the next set — it simply counts down and transitions to Idle, ready for handle-grab
-     * auto-start of the next set.
+     * Start a visual-only "egg timer" for Just Lift rest.
+     *
+     * Unlike the routine rest timer, this does NOT change WorkoutState — the workout
+     * stays in Idle and the auto-start handle-grab detection remains active. The timer
+     * is purely informational: it counts down on screen and is canceled when the user
+     * picks up the handles (triggering auto-start for the next set).
      *
      * Issue #113: Configurable rest timer for Just Lift mode.
      */
-    private fun startJustLiftRestTimer(restSeconds: Int) {
-        coordinator.restTimerJob?.cancel()
+    private fun startJustLiftEggTimer(restSeconds: Int) {
+        coordinator.justLiftRestTimerJob?.cancel()
+        coordinator._justLiftRestCountdown.value = restSeconds
 
-        coordinator.restTimerJob = scope.launch {
-            Logger.d("startJustLiftRestTimer: starting $restSeconds s rest")
+        coordinator.justLiftRestTimerJob = scope.launch {
+            Logger.d("startJustLiftEggTimer: starting $restSeconds s visual countdown")
 
-            // Initialize rest timer control state (reuses +30s/pause/restart from Task 6)
-            coordinator._restOriginalDuration.value = restSeconds
-            coordinator._restSecondsRemaining.value = restSeconds
-            coordinator._isRestPaused.value = false
+            var remaining = restSeconds
+            while (remaining > 0 && isActive) {
+                coordinator._justLiftRestCountdown.value = remaining
 
-            // Emit Resting state immediately
-            coordinator._workoutState.value = WorkoutState.Resting(
-                restSecondsRemaining = restSeconds,
-                nextExerciseName = "Just Lift",
-                isLastExercise = false,
-                currentSet = 0,
-                totalSets = 0,
-                isSupersetTransition = false,
-                supersetLabel = null
-            )
-
-            // LED Biofeedback: show blue during rest
-            coordinator.ledFeedbackController?.onRestPeriodStart()
-
-            var lastTickedSecond = -1
-            var lastDecrementTime = currentTimeMillis()
-
-            // Tick-based loop that respects pause/extend/reset via StateFlow
-            while (coordinator._restSecondsRemaining.value > 0 && isActive) {
-                val remainingSeconds = coordinator._restSecondsRemaining.value
-
-                // Emit countdown tick during last 10 seconds of rest
-                if (remainingSeconds in 1..10 && remainingSeconds != lastTickedSecond) {
-                    lastTickedSecond = remainingSeconds
+                // Beeps in last 10 seconds
+                if (remaining in 1..10) {
                     val prefs = settingsManager.userPreferences.value
                     if (prefs.beepsEnabled && prefs.countdownBeepsEnabled) {
-                        coordinator._hapticEvents.emit(HapticEvent.COUNTDOWN_TICK(remainingSeconds))
+                        coordinator._hapticEvents.emit(HapticEvent.COUNTDOWN_TICK(remaining))
                     }
                 }
 
-                coordinator._workoutState.value = WorkoutState.Resting(
-                    restSecondsRemaining = remainingSeconds,
-                    nextExerciseName = "Just Lift",
-                    isLastExercise = false,
-                    currentSet = 0,
-                    totalSets = 0,
-                    isSupersetTransition = false,
-                    supersetLabel = null
-                )
-
-                delay(100)
-
-                // Decrement once per second, but only when not paused
-                if (!coordinator._isRestPaused.value) {
-                    val now = currentTimeMillis()
-                    if (now - lastDecrementTime >= 1000L) {
-                        coordinator._restSecondsRemaining.value =
-                            (coordinator._restSecondsRemaining.value - 1).coerceAtLeast(0)
-                        lastDecrementTime = now
-                    }
-                } else {
-                    // While paused, keep resetting the decrement anchor
-                    lastDecrementTime = currentTimeMillis()
-                }
+                delay(1000)
+                remaining--
             }
 
-            // Clean up rest timer control state
-            coordinator._isRestPaused.value = false
-
-            // LED Biofeedback: resume normal feedback after rest
-            coordinator.ledFeedbackController?.onRestPeriodEnd()
-
-            // After rest completes, transition to Idle for next Just Lift set
-            Logger.d("startJustLiftRestTimer: rest complete, transitioning to Idle")
-            resetForNewWorkout()
-            coordinator._workoutState.value = WorkoutState.Idle
+            coordinator._justLiftRestCountdown.value = 0
+            Logger.d("startJustLiftEggTimer: countdown complete")
         }
+    }
+
+    /** Cancel the Just Lift egg timer (called when auto-start fires). */
+    internal fun cancelJustLiftEggTimer() {
+        coordinator.justLiftRestTimerJob?.cancel()
+        coordinator.justLiftRestTimerJob = null
+        coordinator._justLiftRestCountdown.value = null
     }
 
     /**
@@ -3072,9 +3034,13 @@ class ActiveSessionEngine(
             coordinator.restTimerJob?.cancel()
             coordinator.restTimerJob = null
 
-            Logger.d("ActiveSessionEngine") { "skipRest: advancing to next set (no BLE stop - already sent at set end)" }
+            val isJustLift = coordinator._workoutParameters.value.isJustLift
+            Logger.d("ActiveSessionEngine") { "skipRest: isJustLift=$isJustLift, advancing (no BLE stop - already sent at set end)" }
 
-            if (isSingleExerciseMode(coordinator)) {
+            if (isJustLift) {
+                // Just Lift rest returns to Idle (ready for next auto-start set), not Completed
+                coordinator._workoutState.value = WorkoutState.Idle
+            } else if (isSingleExerciseMode(coordinator)) {
                 advanceToNextSetInSingleExercise()
             } else {
                 startNextSetOrExercise()
@@ -3135,9 +3101,7 @@ class ActiveSessionEngine(
     private fun startAutoStartTimer() {
         if (coordinator.autoStartJob != null) return
         val currentState = coordinator._workoutState.value
-        val isJustLift = coordinator._workoutParameters.value.isJustLift
-        if (currentState !is WorkoutState.Idle && currentState !is WorkoutState.SetSummary &&
-            !(isJustLift && currentState is WorkoutState.Resting)) {
+        if (currentState !is WorkoutState.Idle && currentState !is WorkoutState.SetSummary) {
             return
         }
 
@@ -3167,17 +3131,14 @@ class ActiveSessionEngine(
             }
 
             val state = coordinator._workoutState.value
-            if (state !is WorkoutState.Idle && state !is WorkoutState.SetSummary &&
-                !(params.isJustLift && state is WorkoutState.Resting)) {
+            if (state !is WorkoutState.Idle && state !is WorkoutState.SetSummary) {
                 Logger.d("Auto-start aborted: workout state changed (state=$state)")
                 return@launch
             }
 
-            // Cancel rest timer if starting a new set during rest (Just Lift)
-            if (state is WorkoutState.Resting && params.isJustLift) {
-                Logger.d("Just Lift: Cancelling rest timer - user grabbed handles to start next set")
-                coordinator.restTimerJob?.cancel()
-                coordinator._isRestPaused.value = false
+            // Cancel Just Lift egg timer when user grabs handles to start next set
+            if (params.isJustLift) {
+                cancelJustLiftEggTimer()
             }
 
             Logger.d { "Issue221: Auto-start timer complete - params.isJustLift=${params.isJustLift}, params.useAutoStart=${params.useAutoStart}" }

@@ -146,6 +146,7 @@ class MainViewModel constructor(
     val latestRepQuality get() = workoutSessionManager.coordinator.latestRepQuality
     val latestBiomechanicsResult get() = workoutSessionManager.coordinator.latestBiomechanicsResult
     val motionStartHoldProgress: StateFlow<Float?> get() = workoutSessionManager.coordinator.motionStartHoldProgress
+    val justLiftRestCountdown: StateFlow<Int?> get() = workoutSessionManager.coordinator.justLiftRestCountdown
     val cycleDayCompletionEvent get() = workoutSessionManager.coordinator.cycleDayCompletionEvent
     fun clearCycleDayCompletionEvent() = workoutSessionManager.clearCycleDayCompletionEvent()
 

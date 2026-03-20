@@ -133,6 +133,14 @@ class WorkoutCoordinator(
     internal val _motionStartHoldProgress = MutableStateFlow<Float?>(null)
     val motionStartHoldProgress: StateFlow<Float?> = _motionStartHoldProgress.asStateFlow()
 
+    // ===== Just Lift Rest Timer (Issue #113) =====
+
+    // Visual-only "egg timer" countdown displayed while user rests between Just Lift sets.
+    // null = no timer active, 0+ = seconds remaining. Picking up handles cancels it.
+    internal val _justLiftRestCountdown = MutableStateFlow<Int?>(null)
+    val justLiftRestCountdown: StateFlow<Int?> = _justLiftRestCountdown.asStateFlow()
+    internal var justLiftRestTimerJob: Job? = null
+
     // ===== Workout Parameters =====
 
     internal val _workoutParameters = MutableStateFlow(
