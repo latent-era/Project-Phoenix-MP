@@ -4,7 +4,6 @@ import co.touchlab.kermit.Logger
 import com.devil.phoenixproject.data.preferences.PreferencesManager
 import com.devil.phoenixproject.data.repository.BleRepository
 import com.devil.phoenixproject.data.repository.KableBleRepository
-import com.devil.phoenixproject.domain.model.HudPreset
 import com.devil.phoenixproject.domain.model.RepCountTiming
 import com.devil.phoenixproject.domain.model.UserPreferences
 import com.devil.phoenixproject.domain.model.WeightUnit
@@ -91,14 +90,6 @@ class SettingsManager(
         scope.launch { preferencesManager.setColorBlindModeEnabled(enabled) }
     }
 
-    val hudPreset: StateFlow<String> = userPreferences
-        .map { it.hudPreset }
-        .stateIn(scope, SharingStarted.Eagerly, HudPreset.FULL.key)
-
-    fun setHudPreset(preset: String) {
-        scope.launch { preferencesManager.setHudPreset(preset) }
-    }
-
     fun setRepCountTiming(timing: RepCountTiming) {
         scope.launch { preferencesManager.setRepCountTiming(timing) }
     }
@@ -154,6 +145,9 @@ class SettingsManager(
 
     fun setLanguage(language: String) {
         scope.launch { preferencesManager.setLanguage(language) }
+        // Apply locale to the platform so the UI updates immediately (Android)
+        // or on next launch (iOS). The preference is persisted above for cold starts.
+        com.devil.phoenixproject.util.applyAppLocale(language)
     }
 
     // Issue #141: Voice-activated emergency stop
