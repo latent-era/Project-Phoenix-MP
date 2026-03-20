@@ -103,37 +103,17 @@ fun ActiveWorkoutScreen(
         }
     }
 
-    // Rep quality score - gated to Phoenix+ tier users only
-    val subscriptionManager: com.devil.phoenixproject.domain.subscription.SubscriptionManager = koinInject()
-    val hasProAccess by subscriptionManager.hasProAccess.collectAsState()
-    val gatedRepQualityScore = if (hasProAccess) latestRepQuality?.composite else null
-
-    // Biomechanics data - gated to Phoenix+ tier users only (HUD-05)
-    // Free tier: all biomechanics elements (velocity card, balance bar, force curve) are hidden
-    // Data capture still happens regardless (GATE-04 from Phase 6)
-    val gatedBiomechanicsResult = if (hasProAccess) latestBiomechanicsResult else null
-
-    // Form check - gated to Phoenix+ tier (CV-01)
-    val hasFormCheckAccess = hasProAccess
-
-    // Ghost racing - gated to Phoenix+ tier (GHOST-02)
-    val gatedGhostSession = if (hasProAccess) ghostSession else null
-    val gatedGhostVerdict = if (hasProAccess) latestGhostVerdict else null
-
-    // Readiness briefing - gated to Elite tier (BRIEF-02)
-    val hasEliteAccess by subscriptionManager.hasEliteAccess.collectAsState()
+    // Readiness briefing
     var readinessDismissed by remember { mutableStateOf(false) }
     var readinessResult by remember { mutableStateOf<ReadinessResult?>(null) }
 
-    // Compute readiness once on screen open for Elite users
-    if (hasEliteAccess) {
-        val smartSuggestionsRepo: SmartSuggestionsRepository = koinInject()
-        LaunchedEffect(Unit) {
-            val twentyEightDaysMs = 28L * 24 * 60 * 60 * 1000
-            val nowMs = currentTimeMillis()
-            val summaries = smartSuggestionsRepo.getSessionSummariesSince(nowMs - twentyEightDaysMs)
-            readinessResult = ReadinessEngine.computeReadiness(summaries, nowMs)
-        }
+    // Compute readiness once on screen open
+    val smartSuggestionsRepo: SmartSuggestionsRepository = koinInject()
+    LaunchedEffect(Unit) {
+        val twentyEightDaysMs = 28L * 24 * 60 * 60 * 1000
+        val nowMs = currentTimeMillis()
+        val summaries = smartSuggestionsRepo.getSessionSummariesSince(nowMs - twentyEightDaysMs)
+        readinessResult = ReadinessEngine.computeReadiness(summaries, nowMs)
     }
 
     // iOS "coming soon" dialog state (CV-10)
@@ -348,33 +328,23 @@ fun ActiveWorkoutScreen(
     // 0 (Unlimited) = autoplay OFF, != 0 (-1 or 5-30) = autoplay ON
     val autoplayEnabled = userPreferences.summaryCountdownSeconds != 0
 
-    // Gate biomechanics summary cards for free tier (SUM-05)
-    // Nulls biomechanicsSummary on SetSummary state so all three cards
-    // (velocity, force curve, asymmetry) are hidden for free-tier users
-    val currentWorkoutState = workoutState
-    val gatedWorkoutState = if (!hasProAccess && currentWorkoutState is WorkoutState.SetSummary) {
-        currentWorkoutState.copy(biomechanicsSummary = null)
-    } else {
-        currentWorkoutState
-    }
-
     val workoutUiState = remember(
-        connectionState, gatedWorkoutState, currentMetric, currentHeuristicKgMax, workoutParameters,
+        connectionState, workoutState, currentMetric, currentHeuristicKgMax, workoutParameters,
         repCount, repRanges, autoStopState, weightUnit, enableVideoPlayback,
         loadedRoutine, currentExerciseIndex, currentSetIndex, skippedExercises, completedExercises,
         autoplayEnabled, userPreferences.summaryCountdownSeconds, loadBaselineA, loadBaselineB,
         canGoBack, canSkipForward,
-        timedExerciseRemainingSeconds, isCurrentExerciseBodyweight, gatedRepQualityScore,
-        gatedBiomechanicsResult, detectionState,
+        timedExerciseRemainingSeconds, isCurrentExerciseBodyweight, latestRepQuality,
+        latestBiomechanicsResult, detectionState,
         isFormCheckEnabled, latestFormViolations, latestFormScore,
-        gatedGhostSession, gatedGhostVerdict,
+        ghostSession, latestGhostVerdict,
         motionStartHoldProgress, isRestPaused,
         currentWarmupSetIndex, totalWarmupSets,
         justLiftRestCountdown
     ) {
         WorkoutUiState(
             connectionState = connectionState,
-            workoutState = gatedWorkoutState,
+            workoutState = workoutState,
             currentMetric = currentMetric,
             currentHeuristicKgMax = currentHeuristicKgMax,
             workoutParameters = workoutParameters,
@@ -399,14 +369,14 @@ fun ActiveWorkoutScreen(
             canSkipForward = canSkipForward,
             timedExerciseRemainingSeconds = timedExerciseRemainingSeconds,
             isCurrentExerciseBodyweight = isCurrentExerciseBodyweight,
-            latestRepQualityScore = gatedRepQualityScore,
-            latestBiomechanicsResult = gatedBiomechanicsResult,
+            latestRepQualityScore = latestRepQuality?.composite,
+            latestBiomechanicsResult = latestBiomechanicsResult,
             detectionState = detectionState,
             isFormCheckEnabled = isFormCheckEnabled,
             latestFormViolations = latestFormViolations,
             latestFormScore = latestFormScore,
-            ghostSession = gatedGhostSession,
-            latestGhostVerdict = gatedGhostVerdict,
+            ghostSession = ghostSession,
+            latestGhostVerdict = latestGhostVerdict,
             motionStartHoldProgress = motionStartHoldProgress,
             isRestPaused = isRestPaused,
             currentWarmupSetIndex = currentWarmupSetIndex,
@@ -455,7 +425,7 @@ fun ActiveWorkoutScreen(
         Column(modifier = Modifier.padding(paddingValues)) {
             // Readiness briefing card -- shown in Idle state for Elite users (BRIEF-02)
             // Card is purely informational, sits above workout controls, never blocks workout start
-            if (hasEliteAccess && !readinessDismissed && readinessResult != null && workoutState is WorkoutState.Idle) {
+            if (!readinessDismissed && readinessResult != null && workoutState is WorkoutState.Idle) {
                 ReadinessBriefingCard(
                     result = readinessResult!!,
                     onDismiss = { readinessDismissed = true },
@@ -469,7 +439,6 @@ fun ActiveWorkoutScreen(
                 actions = workoutActions,
                 exerciseRepository = exerciseRepository,
                 hapticEvents = hapticEvents,
-                hasFormCheckAccess = hasFormCheckAccess,
                 onToggleFormCheck = onToggleFormCheck,
                 onFormAssessment = onFormAssessment,
                 modifier = Modifier
