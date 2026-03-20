@@ -494,7 +494,7 @@ class ActiveSessionEngine(
      * Collect metric for history recording.
      */
     private fun collectMetricForHistory(metric: WorkoutMetric) {
-        coordinator.collectedMetrics.add(metric)
+        coordinator.collectedMetrics.update { it + metric }
     }
 
     // ===== Auto-Stop Helpers =====
@@ -654,11 +654,12 @@ class ActiveSessionEngine(
         // Score the rep if rep count actually incremented
         val repCountAfter = repCounter.getRepCount().totalReps
         if (repCountAfter > repCountBefore) {
-            scoreCurrentRep(repCountAfter)
-
-            // Capture rep boundary timestamp for MetricSample segmentation
+            // Capture rep boundary timestamp BEFORE scoring so scoreCurrentRep()
+            // and processBiomechanicsForRep() both see the correct metric window.
             val now = KmpUtils.currentTimeMillis()
             coordinator.repBoundaryTimestamps.add(now)
+
+            scoreCurrentRep(repCountAfter)
 
             // Segment metrics for this rep and process biomechanics (GATE-04: unconditional capture)
             processBiomechanicsForRep(repCountAfter, now)
@@ -673,7 +674,7 @@ class ActiveSessionEngine(
 
                 detectionManager?.onRepCompleted(
                     repNumber = repCount.workingReps,
-                    metrics = coordinator.collectedMetrics.toList(),
+                    metrics = coordinator.collectedMetrics.value,
                     scope = scope,
                     hasExerciseAssigned = hasExerciseAssigned
                 )
@@ -724,7 +725,7 @@ class ActiveSessionEngine(
      * then extracts force, velocity, and position arrays for each phase.
      */
     private fun scoreCurrentRep(repNumber: Int) {
-        val metrics = coordinator.collectedMetrics
+        val metrics = coordinator.collectedMetrics.value
         if (metrics.isEmpty()) return
 
         // Get all metrics for this rep (use rep boundary timestamps if available)
@@ -859,7 +860,7 @@ class ActiveSessionEngine(
      */
     private fun processBiomechanicsForRep(repNumber: Int, timestamp: Long) {
         scope.launch(Dispatchers.Default) {
-            val allMetrics = coordinator.collectedMetrics.toList()
+            val allMetrics = coordinator.collectedMetrics.value
             val boundaries = coordinator.repBoundaryTimestamps.toList()
 
             // Segment: metrics between previous boundary and current boundary
@@ -1165,6 +1166,11 @@ class ActiveSessionEngine(
 
     /**
      * Adjust the weight during an active workout or rest period.
+     *
+     * If called during an active set, the BLE command is deferred until the next
+     * set boundary. sendWeightUpdateToMachine() sends a full REGULAR_COMMAND packet
+     * which resets the exercise on the machine (BLE exercise packet lifecycle constraint:
+     * machine can't receive new exercise packet until active one fully ends).
      */
     fun adjustWeight(newWeightKg: Float, sendToMachine: Boolean = true) {
         val clampedWeight = newWeightKg.coerceIn(0f, 110f)
@@ -1184,9 +1190,10 @@ class ActiveSessionEngine(
         }
 
         if (sendToMachine && coordinator._workoutState.value is WorkoutState.Active) {
-            scope.launch {
-                sendWeightUpdateToMachine(clampedWeight)
-            }
+            // Defer BLE weight change to next set boundary. Sending a full workout
+            // command (REGULAR_COMMAND) mid-set would fault the machine.
+            coordinator.pendingWeightChangeKg = clampedWeight
+            Logger.d("ActiveSessionEngine: Deferred weight change to $clampedWeight kg (mid-set, will apply at next set start)")
         }
     }
 
@@ -1552,8 +1559,11 @@ class ActiveSessionEngine(
         // Reset rep quality scorer for fresh set
         coordinator.repQualityScorer.reset()
         coordinator._latestRepQuality.value = null
-        // Reset quality streak for new workout (session-scoped)
-        gamificationManager.resetQualityStreak()
+        // Reset quality streak only at actual workout start, not between sets.
+        // skipCountdown=true indicates a set-to-set transition within the same workout.
+        if (!skipCountdown) {
+            gamificationManager.resetQualityStreak()
+        }
 
         coordinator.workoutJob?.cancel()
 
@@ -1652,7 +1662,7 @@ class ActiveSessionEngine(
                     coordinator.routineStartTime = coordinator.workoutStartTime
                 }
                 coordinator.currentSessionId = KmpUtils.randomUUID()
-                coordinator.collectedMetrics.clear()
+                coordinator.collectedMetrics.value = emptyList()
                 coordinator._hapticEvents.emit(HapticEvent.WORKOUT_START)
 
                 // LED Biofeedback: configure controller for bodyweight workout
@@ -1688,6 +1698,12 @@ class ActiveSessionEngine(
                 updated
             } else {
                 params
+            }
+
+            // Clear any deferred mid-set weight change flag (weight already applied to _workoutParameters)
+            if (coordinator.pendingWeightChangeKg != null) {
+                Logger.d("ActiveSessionEngine: Deferred weight change of ${coordinator.pendingWeightChangeKg} kg applied at set start")
+                coordinator.pendingWeightChangeKg = null
             }
 
             println("Issue222: CABLE WORKOUT STARTING - DIAGNOSTIC STATE")
@@ -1833,7 +1849,7 @@ class ActiveSessionEngine(
             if (coordinator._loadedRoutine.value != null && coordinator.routineStartTime == 0L) {
                 coordinator.routineStartTime = coordinator.workoutStartTime
             }
-            coordinator.collectedMetrics.clear()
+            coordinator.collectedMetrics.value = emptyList()
             coordinator._hapticEvents.emit(HapticEvent.WORKOUT_START)
 
             // LED Biofeedback: configure controller for this workout
@@ -2009,7 +2025,7 @@ class ActiveSessionEngine(
                  exerciseRepository.getExerciseById(exerciseId)?.name
              }
 
-             val metrics = coordinator.collectedMetrics.toList()
+             val metrics = coordinator.collectedMetrics.value
              Logger.i { "WEIGHT_DEBUG[Session]: At set completion - params.weightPerCableKg=${params.weightPerCableKg} kg" }
              val summary = calculateSetSummaryMetrics(
                  metrics = metrics,
@@ -2129,6 +2145,9 @@ class ActiveSessionEngine(
     }
 
     fun stopAndReturnToSetReady() {
+        if (coordinator.stopWorkoutInProgress) return
+        coordinator.stopWorkoutInProgress = true
+
         coordinator.workoutJob?.cancel()
         coordinator.workoutJob = null
         coordinator.restTimerJob?.cancel()
@@ -2138,25 +2157,32 @@ class ActiveSessionEngine(
         coordinator._timedExerciseRemainingSeconds.value = null
 
         scope.launch {
-            bleRepository.stopWorkout()
+            try {
+                bleRepository.stopWorkout()
 
-            repCounter.reset()
-            coordinator._repCount.value = RepCount()
-            coordinator._repRanges.value = null
-            coordinator.warmupCompleteTimeMs = 0
-            resetAutoStopState()
-            coordinator._workoutState.value = WorkoutState.Idle
+                repCounter.reset()
+                coordinator._repCount.value = RepCount()
+                coordinator._repRanges.value = null
+                coordinator.warmupCompleteTimeMs = 0
+                resetAutoStopState()
+                coordinator._workoutState.value = WorkoutState.Idle
 
-            val routine = coordinator._loadedRoutine.value
-            if (routine != null) {
-                flowDelegate?.enterSetReady(coordinator._currentExerciseIndex.value, coordinator._currentSetIndex.value)
+                val routine = coordinator._loadedRoutine.value
+                if (routine != null) {
+                    flowDelegate?.enterSetReady(coordinator._currentExerciseIndex.value, coordinator._currentSetIndex.value)
+                }
+
+                Logger.d { "stopAndReturnToSetReady: Reset to SetReady for exercise=${coordinator._currentExerciseIndex.value}, set=${coordinator._currentSetIndex.value}" }
+            } finally {
+                coordinator.stopWorkoutInProgress = false
             }
-
-            Logger.d { "stopAndReturnToSetReady: Reset to SetReady for exercise=${coordinator._currentExerciseIndex.value}, set=${coordinator._currentSetIndex.value}" }
         }
     }
 
     fun stopAndSkipCurrentExercise() {
+        if (coordinator.stopWorkoutInProgress) return
+        coordinator.stopWorkoutInProgress = true
+
         val skippedExerciseIndex = coordinator._currentExerciseIndex.value
         val skippedSetIndex = coordinator._currentSetIndex.value
 
@@ -2169,31 +2195,47 @@ class ActiveSessionEngine(
         coordinator._timedExerciseRemainingSeconds.value = null
 
         scope.launch {
-            bleRepository.stopWorkout()
+            try {
+                bleRepository.stopWorkout()
 
-            repCounter.reset()
-            coordinator._repCount.value = RepCount()
-            coordinator._repRanges.value = null
-            coordinator.warmupCompleteTimeMs = 0
-            resetAutoStopState()
-            coordinator._workoutState.value = WorkoutState.Idle
+                repCounter.reset()
+                coordinator._repCount.value = RepCount()
+                coordinator._repRanges.value = null
+                coordinator.warmupCompleteTimeMs = 0
+                resetAutoStopState()
+                coordinator._workoutState.value = WorkoutState.Idle
 
-            val routine = coordinator._loadedRoutine.value
-            if (routine != null) {
-                val movedToNextStep = flowDelegate?.skipCurrentExerciseAndEnterNextStep() == true
-                if (!movedToNextStep) {
-                    flowDelegate?.showRoutineComplete()
+                val routine = coordinator._loadedRoutine.value
+                if (routine != null) {
+                    val movedToNextStep = flowDelegate?.skipCurrentExerciseAndEnterNextStep() == true
+                    if (!movedToNextStep) {
+                        flowDelegate?.showRoutineComplete()
+                    }
                 }
-            }
 
-            Logger.d {
-                "stopAndSkipCurrentExercise: Skipped exercise=$skippedExerciseIndex, set=$skippedSetIndex"
+                Logger.d {
+                    "stopAndSkipCurrentExercise: Skipped exercise=$skippedExerciseIndex, set=$skippedSetIndex"
+                }
+            } finally {
+                coordinator.stopWorkoutInProgress = false
             }
         }
     }
 
     fun pauseWorkout() {
         if (coordinator._workoutState.value is WorkoutState.Active) {
+            // Send BLE stop BEFORE cancelling collection jobs.
+            // The machine must be stopped first; cancelling collection without stopping
+            // leaves the machine running unmonitored (project memory: mid-set BLE faults).
+            scope.launch {
+                try {
+                    bleRepository.stopWorkout()
+                    Logger.d { "ActiveSessionEngine: BLE stop sent before pause" }
+                } catch (e: Exception) {
+                    Logger.e(e) { "ActiveSessionEngine: Failed to send BLE stop during pause: ${e.message}" }
+                }
+            }
+
             coordinator.monitorDataCollectionJob?.cancel()
             coordinator.repEventsCollectionJob?.cancel()
 
@@ -2253,7 +2295,7 @@ class ActiveSessionEngine(
         val effectiveStart = if (coordinator.warmupCompleteTimeMs > 0L) coordinator.warmupCompleteTimeMs else coordinator.workoutStartTime
         val duration = currentTimeMillis() - effectiveStart
 
-        val metricsSnapshot = coordinator.collectedMetrics.toList()
+        val metricsSnapshot = coordinator.collectedMetrics.value
 
         val exerciseName = params.selectedExerciseId?.let { exerciseId ->
             exerciseRepository.getExerciseById(exerciseId)?.name
@@ -2494,6 +2536,13 @@ class ActiveSessionEngine(
                 applyAutoAcceptedDetection()
             }
 
+            // Compute form score BEFORE saveWorkoutSession() so the persisted session
+            // picks up the current set's score (saveWorkoutSession reads _latestFormScore).
+            val formScore = if (coordinator.formAssessments.isNotEmpty()) {
+                FormRulesEngine.calculateFormScore(coordinator.formAssessments)
+            } else null
+            coordinator._latestFormScore.value = formScore
+
             saveWorkoutSession()
 
             // Persist per-rep metric data (GATE-04: captured for all tiers)
@@ -2523,12 +2572,6 @@ class ActiveSessionEngine(
                 }
             }
 
-            // Capture form score BEFORE clearing assessments
-            val formScore = if (coordinator.formAssessments.isNotEmpty()) {
-                FormRulesEngine.calculateFormScore(coordinator.formAssessments)
-            } else null
-            coordinator._latestFormScore.value = formScore
-
             // Capture rep quality summary BEFORE reset (null if no reps were scored)
             val qualitySummary = try {
                 coordinator.repQualityScorer.getSetSummary()
@@ -2555,7 +2598,7 @@ class ActiveSessionEngine(
 
             val completedReps = coordinator._repCount.value.workingReps
             val warmupReps = coordinator._repCount.value.warmupReps
-            val metricsList = coordinator.collectedMetrics.toList()
+            val metricsList = coordinator.collectedMetrics.value
 
             val baseSummary = calculateSetSummaryMetrics(
                 metrics = metricsList,

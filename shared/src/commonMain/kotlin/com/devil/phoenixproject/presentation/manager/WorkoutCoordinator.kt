@@ -8,6 +8,7 @@ import com.devil.phoenixproject.domain.model.GhostRepComparison
 import com.devil.phoenixproject.domain.model.GhostSession
 import com.devil.phoenixproject.domain.premium.BiomechanicsEngine
 import com.devil.phoenixproject.domain.premium.RepQualityScorer
+import kotlin.concurrent.Volatile
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -160,6 +161,11 @@ class WorkoutCoordinator(
     // When true, preserve user's weight instead of reloading from exercise preset
     internal var _userAdjustedWeightDuringRest = false
 
+    // Deferred mid-set weight change: applied at next set start since sending a full
+    // REGULAR_COMMAND mid-set faults the machine (BLE exercise packet lifecycle).
+    @Volatile
+    internal var pendingWeightChangeKg: Float? = null
+
     // ===== Rep Counting =====
 
     internal val _repCount = MutableStateFlow(RepCount())
@@ -223,7 +229,7 @@ class WorkoutCoordinator(
     internal var workoutStartTime: Long = 0
     internal var warmupCompleteTimeMs: Long = 0  // Issue #252: Exclude warmup time from duration
     internal var routineStartTime: Long = 0  // Issue #195: Track routine start separately from per-set start
-    internal val collectedMetrics = mutableListOf<WorkoutMetric>()
+    internal val collectedMetrics = MutableStateFlow<List<WorkoutMetric>>(emptyList())
     internal val setRepMetrics = mutableListOf<RepMetricData>()
 
     internal var currentRoutineSessionId: String? = null
@@ -239,19 +245,27 @@ class WorkoutCoordinator(
     val cycleDayCompletionEvent: StateFlow<CycleDayCompletionEvent?> = _cycleDayCompletionEvent.asStateFlow()
 
     // ===== Auto-Stop Internal State =====
+    // These fields are accessed from multiple coroutines (metric collection, auto-stop timer,
+    // UI-driven stop/skip). @Volatile ensures cross-coroutine visibility.
 
+    @Volatile
     internal var autoStopStartTime: Long? = null
+    @Volatile
     internal var autoStopTriggered = false
     internal var autoStopStopRequested = false
     // Guard to prevent race condition where multiple stopWorkout() calls create duplicate sessions
     // Issue #97: handleMonitorMetric() can call stopWorkout() multiple times before state changes
+    @Volatile
     internal var stopWorkoutInProgress = false
     // Guard to prevent duplicate auto-completion when rep target is reached
+    @Volatile
     internal var setCompletionInProgress = false
     internal var currentHandleState: HandleState = HandleState.WaitingForRest
 
     // Velocity-based stall detection state (Issue #204, #214)
+    @Volatile
     internal var stallStartTime: Long? = null
+    @Volatile
     internal var isCurrentlyStalled = false
 
     // ===== Rest Timer Control State (Issue #297, #228) =====
