@@ -33,6 +33,8 @@ actual class SafeWordListener(
     private companion object {
         const val TAG = "SafeWordListener"
         const val RESTART_DELAY_MS = 500L
+        /** Minimum interval between emissions to prevent partial+final double-counting. */
+        const val DEBOUNCE_MS = 1000L
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -46,6 +48,9 @@ actual class SafeWordListener(
 
     /** Tracks whether we *want* to be listening (guards auto-restart). */
     private var shouldBeListening = false
+
+    /** Last time we emitted a detection — used to debounce partial+final duplicates. */
+    private var lastEmitTimeMs = 0L
 
     actual fun startListening() {
         if (shouldBeListening) return
@@ -164,6 +169,12 @@ actual class SafeWordListener(
             ?: return
         for (match in matches) {
             if (matchesSafeWord(match)) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (now - lastEmitTimeMs < DEBOUNCE_MS) {
+                    Log.d(TAG, "Safe word match suppressed (debounce): \"$match\"")
+                    return
+                }
+                lastEmitTimeMs = now
                 Log.i(TAG, "Safe word detected in: \"$match\"")
                 _detectedWord.tryEmit(safeWord)
                 return
