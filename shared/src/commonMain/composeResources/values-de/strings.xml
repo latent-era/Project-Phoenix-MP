@@ -65,7 +65,7 @@
     <string name="label_lbs">lbs</string>
     <string name="label_per_cable">Pro Kabel</string>
     <string name="label_sets">Sätze:</string>
-    <string name="label_set">Einstellen</string>
+    <string name="label_set">Satz</string>
     <string name="label_live">LIVE</string>
     <string name="label_charts">Diagramme</string>
     <string name="label_table">Tabelle</string>
@@ -294,7 +294,7 @@
     <string name="nav_previous">◄</string>
     <string name="nav_next">►</string>
     <string name="ghost_you">DU</string>
-    <string name="ghost_best">BEST</string>
+    <string name="ghost_best">BESTE</string>
     <!-- ==================== Issue 1: AnalyticsScreen ==================== -->
     <string name="analytics_progress">Fortschritt</string>
     <string name="analytics_progress_subtitle">Verfolge deine Kraftzuwächse über die Zeit</string>
@@ -415,7 +415,6 @@
     <string name="cd_close_workout">Close workout</string>
     <string name="cd_hands_off_handles">Hands off handles</string>
     <string name="cd_starting_workout">Starting workout</string>
-    <string name="cd_workout_hud">Workout HUD</string>
     <string name="cd_workout_completed">Workout completed</string>
     <string name="cd_workout_error">Workout error</string>
     <string name="cd_workout_session_icon">Workout session icon</string>
