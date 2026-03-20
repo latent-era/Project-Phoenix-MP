@@ -32,41 +32,92 @@ class AndroidDataBackupManager(
         }
 
     override fun getSessionBackupDirectory(): String {
-        val dir = context.getExternalFilesDir("PhoenixBackups")
-            ?: File(context.filesDir, "PhoenixBackups")
-        if (!dir.exists()) dir.mkdirs()
-        return dir.absolutePath
+        // On Q+ we write via MediaStore, but need a staging path for base class path construction.
+        // On pre-Q we write directly to public Downloads (survives uninstall).
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val dir = File(context.cacheDir, "PhoenixBackups")
+            if (!dir.exists()) dir.mkdirs()
+            dir.absolutePath
+        } else {
+            @Suppress("DEPRECATION")
+            val dir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "PhoenixBackups"
+            )
+            if (!dir.exists()) dir.mkdirs()
+            dir.absolutePath
+        }
+    }
+
+    /**
+     * On Android Q+, write session backups to MediaStore Downloads so they survive
+     * app uninstall. On pre-Q, the base class writes directly to public Downloads.
+     */
+    override fun writeSessionBackupFile(filePath: String, content: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val fileName = File(filePath).name
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                put(MediaStore.Downloads.MIME_TYPE, "application/json")
+                put(MediaStore.Downloads.RELATIVE_PATH, "Download/PhoenixBackups")
+            }
+            val resolver = context.contentResolver
+            val destUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                ?: throw Exception("Failed to create backup file in Downloads")
+            resolver.openOutputStream(destUri)?.use { outputStream ->
+                outputStream.write(content.toByteArray(Charsets.UTF_8))
+            }
+        } else {
+            // Pre-Q: write directly to public Downloads path (already set by getSessionBackupDirectory)
+            super.writeSessionBackupFile(filePath, content)
+        }
     }
 
     override fun listBackupFileSizes(): List<Long> {
-        val dir = File(getSessionBackupDirectory())
-        return dir.listFiles()
-            ?.filter { it.isFile && it.name.endsWith(".json") }
-            ?.map { it.length() }
-            ?: emptyList()
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val sizes = mutableListOf<Long>()
+            val resolver = context.contentResolver
+            resolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                arrayOf(MediaStore.Downloads.SIZE),
+                "${MediaStore.Downloads.RELATIVE_PATH} = ? AND ${MediaStore.Downloads.DISPLAY_NAME} LIKE ?",
+                arrayOf("Download/PhoenixBackups/", "phoenix-workout-%.json"),
+                null
+            )?.use { cursor ->
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Downloads.SIZE)
+                while (cursor.moveToNext()) {
+                    sizes.add(cursor.getLong(sizeColumn))
+                }
+            }
+            sizes
+        } else {
+            @Suppress("DEPRECATION")
+            val dir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "PhoenixBackups"
+            )
+            dir.listFiles()
+                ?.filter { it.isFile && it.name.endsWith(".json") }
+                ?.map { it.length() }
+                ?: emptyList()
+        }
     }
 
     override fun openBackupFolder() {
         try {
-            val dir = File(getSessionBackupDirectory())
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                dir
-            )
+            // Open Downloads/PhoenixBackups in system file manager
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "resource/folder")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                val downloadsUri = android.net.Uri.parse(
+                    "content://com.android.externalstorage.documents/document/primary:Download%2FPhoenixBackups"
+                )
+                data = downloadsUri
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
-        } catch (e: Exception) {
-            // Fallback: some devices don't support folder browsing via FileProvider.
-            // Open the system file manager to the general external files area.
+        } catch (_: Exception) {
+            // Fallback: open general Downloads folder
             try {
-                val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
-                    val storageUri = android.net.Uri.parse("content://com.android.externalstorage.documents/document/primary:Android")
-                    data = storageUri
+                val fallbackIntent = Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(fallbackIntent)

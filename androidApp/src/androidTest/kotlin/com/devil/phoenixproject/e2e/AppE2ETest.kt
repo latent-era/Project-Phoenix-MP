@@ -28,6 +28,11 @@ import com.devil.phoenixproject.data.sync.GamificationStatsSyncDto
 import com.devil.phoenixproject.data.sync.IdMappings
 import com.devil.phoenixproject.data.sync.PersonalRecordSyncDto
 import com.devil.phoenixproject.data.sync.PortalApiClient
+import com.devil.phoenixproject.data.sync.PortalSyncAdapter
+import com.devil.phoenixproject.data.sync.PullTrainingCycleDto
+import com.devil.phoenixproject.database.AssessmentResult
+import com.devil.phoenixproject.database.ExerciseSignature
+import com.devil.phoenixproject.database.PhaseStatistics
 import com.devil.phoenixproject.data.sync.PortalTokenStorage
 import com.devil.phoenixproject.data.sync.PullRoutineDto
 import com.devil.phoenixproject.data.sync.RoutineSyncDto
@@ -50,6 +55,7 @@ import com.devil.phoenixproject.testutil.FakeCsvImporter
 import com.devil.phoenixproject.testutil.FakeExerciseRepository
 import com.devil.phoenixproject.testutil.FakeGamificationRepository
 import com.devil.phoenixproject.testutil.FakePersonalRecordRepository
+import com.devil.phoenixproject.testutil.FakeDataBackupManager
 import com.devil.phoenixproject.testutil.FakePreferencesManager
 import com.devil.phoenixproject.testutil.FakeTrainingCycleRepository
 import com.devil.phoenixproject.testutil.FakeBiomechanicsRepository
@@ -57,6 +63,7 @@ import com.devil.phoenixproject.testutil.FakeCompletedSetRepository
 import com.devil.phoenixproject.testutil.FakeRepMetricRepository
 import com.devil.phoenixproject.testutil.FakeUserProfileRepository
 import com.devil.phoenixproject.testutil.FakeWorkoutRepository
+import com.devil.phoenixproject.util.DataBackupManager
 import com.devil.phoenixproject.util.ConnectivityChecker
 import com.devil.phoenixproject.util.Constants
 import com.devil.phoenixproject.util.CsvExporter
@@ -167,6 +174,12 @@ private val testModule = module {
             override suspend fun mergeBadges(badges: List<EarnedBadgeSyncDto>) = Unit
             override suspend fun mergeGamificationStats(stats: GamificationStatsSyncDto?) = Unit
             override suspend fun mergePortalRoutines(routines: List<PullRoutineDto>, lastSync: Long) = Unit
+            override suspend fun getFullCyclesForSync(): List<PortalSyncAdapter.CycleWithContext> = emptyList()
+            override suspend fun getFullPRsModifiedSince(timestamp: Long): List<com.devil.phoenixproject.domain.model.PersonalRecord> = emptyList()
+            override suspend fun getPhaseStatisticsForSessions(sessionIds: List<String>): List<PhaseStatistics> = emptyList()
+            override suspend fun getAllExerciseSignatures(): List<ExerciseSignature> = emptyList()
+            override suspend fun getAllAssessments(): List<AssessmentResult> = emptyList()
+            override suspend fun mergePortalCycles(cycles: List<PullTrainingCycleDto>) = Unit
         }
     }
     single { ConnectivityChecker(ApplicationProvider.getApplicationContext()) }
@@ -185,6 +198,7 @@ private val testModule = module {
     single { SyncTriggerManager(get(), get()) }
     single { RepCounterFromMachine() }
     single { ResolveRoutineWeightsUseCase(get()) }
+    single<DataBackupManager> { FakeDataBackupManager() }
     factory {
         MainViewModel(
             bleRepository = get(),
@@ -199,7 +213,8 @@ private val testModule = module {
             repMetricRepository = get(),
             biomechanicsRepository = get(),
             resolveWeightsUseCase = get(),
-            detectionManager = get()
+            detectionManager = get(),
+            dataBackupManager = get()
         )
     }
     single { ThemeViewModel(get()) }

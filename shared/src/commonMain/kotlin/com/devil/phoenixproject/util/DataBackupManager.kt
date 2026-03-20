@@ -209,10 +209,11 @@ abstract class BaseDataBackupManager(
         val gamificationStats = runCatching { queries.selectGamificationStatsSync().executeAsOneOrNull() }.getOrNull()
         val userProfiles = runCatching { queries.selectAllUserProfilesSync().executeAsList() }.getOrElse { emptyList() }
 
+        val nowMs = KmpUtils.currentTimeMillis()
         BackupData(
             version = 1,
-            exportedAt = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd") + "T" +
-                    KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "HH:mm:ss") + "Z",
+            exportedAt = KmpUtils.formatTimestamp(nowMs, "yyyy-MM-dd") + "T" +
+                    KmpUtils.formatTimestamp(nowMs, "HH:mm:ss") + "Z",
             appVersion = Constants.APP_VERSION,
             data = BackupContent(
                 workoutSessions = sessions.map { session -> mapSessionToBackup(session, routineNameResolutionContext) },
@@ -882,8 +883,9 @@ abstract class BaseDataBackupManager(
         val routineNameResolutionContext = buildRoutineNameResolutionContext(routines, routineExercises)
 
         // JSON header
-        val exportedAt = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd") + "T" +
-            KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "HH:mm:ss") + "Z"
+        val exportNowMs = KmpUtils.currentTimeMillis()
+        val exportedAt = KmpUtils.formatTimestamp(exportNowMs, "yyyy-MM-dd") + "T" +
+            KmpUtils.formatTimestamp(exportNowMs, "HH:mm:ss") + "Z"
         writer.write("""{"version":1,"exportedAt":"$exportedAt","appVersion":"${Constants.APP_VERSION}","data":{""")
 
         // Phase 2: Sessions
@@ -1556,16 +1558,19 @@ abstract class BaseDataBackupManager(
                 ?: return@withContext Result.failure(Exception("Session not found: $sessionId"))
 
             val metrics = queries.selectMetricsBySession(sessionId).executeAsList()
+            val completedSets = queries.selectCompletedSetsBySession(sessionId).executeAsList()
 
             // Build a minimal BackupData with just this session (import-compatible)
+            val sessionBackupNowMs = KmpUtils.currentTimeMillis()
             val backupData = BackupData(
                 version = 1,
-                exportedAt = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd") + "T" +
-                        KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "HH:mm:ss") + "Z",
+                exportedAt = KmpUtils.formatTimestamp(sessionBackupNowMs, "yyyy-MM-dd") + "T" +
+                        KmpUtils.formatTimestamp(sessionBackupNowMs, "HH:mm:ss") + "Z",
                 appVersion = Constants.APP_VERSION,
                 data = BackupContent(
                     workoutSessions = listOf(mapSessionToBackup(session)),
-                    metricSamples = metrics.map { mapMetricToBackup(it) }
+                    metricSamples = metrics.map { mapMetricToBackup(it) },
+                    completedSets = completedSets.map { mapCompletedSetToBackup(it) }
                 )
             )
 
