@@ -174,10 +174,11 @@ class ActiveSessionEngine(
                 val currentState = coordinator._workoutState.value
                 val isIdle = currentState is WorkoutState.Idle
                 val isSummaryAndJustLift = currentState is WorkoutState.SetSummary && params.isJustLift
+                val isRestingAndJustLift = currentState is WorkoutState.Resting && params.isJustLift
 
                 // Handle auto-START when Idle and waiting for handles
-                // Also allow auto-start from SetSummary if in Just Lift mode (interrupting the summary)
-                if (params.useAutoStart && (isIdle || isSummaryAndJustLift)) {
+                // Also allow auto-start from SetSummary or Resting if in Just Lift mode (interrupting to start next set)
+                if (params.useAutoStart && (isIdle || isSummaryAndJustLift || isRestingAndJustLift)) {
                     when (activityState) {
                         HandleState.Grabbed -> {
                             Logger.d("Handles grabbed! Starting auto-start timer (State: ${coordinator._workoutState.value})")
@@ -1272,7 +1273,8 @@ class ActiveSessionEngine(
             eccentricLoadPercentage = prefsDefaults.eccentricLoadPercentage,
             echoLevelValue = prefsDefaults.echoLevelValue,
             stallDetectionEnabled = prefsDefaults.stallDetectionEnabled,
-            repCountTimingName = prefsDefaults.repCountTimingName
+            repCountTimingName = prefsDefaults.repCountTimingName,
+            restSeconds = prefsDefaults.restSeconds
         )
     }
 
@@ -1285,10 +1287,11 @@ class ActiveSessionEngine(
                 eccentricLoadPercentage = defaults.eccentricLoadPercentage,
                 echoLevelValue = defaults.echoLevelValue,
                 stallDetectionEnabled = defaults.stallDetectionEnabled,
-                repCountTimingName = defaults.repCountTimingName
+                repCountTimingName = defaults.repCountTimingName,
+                restSeconds = defaults.restSeconds
             )
             preferencesManager.saveJustLiftDefaults(prefsDefaults)
-            Logger.d("saveJustLiftDefaults: weight=${defaults.weightPerCableKg}kg, mode=${defaults.workoutModeId}")
+            Logger.d("saveJustLiftDefaults: weight=${defaults.weightPerCableKg}kg, mode=${defaults.workoutModeId}, restSeconds=${defaults.restSeconds}")
         }
     }
 
@@ -1325,10 +1328,11 @@ class ActiveSessionEngine(
                 eccentricLoadPercentage = eccentricLoadPct,
                 echoLevelValue = echoLevelVal,
                 stallDetectionEnabled = params.stallDetectionEnabled,
-                repCountTimingName = params.repCountTiming.name
+                repCountTimingName = params.repCountTiming.name,
+                restSeconds = params.justLiftRestSeconds
             )
             preferencesManager.saveJustLiftDefaults(defaults)
-            Logger.d { "Saved Just Lift defaults: mode=${params.programMode.modeValue}, weight=${params.weightPerCableKg}kg" }
+            Logger.d { "Saved Just Lift defaults: mode=${params.programMode.modeValue}, weight=${params.weightPerCableKg}kg, restSeconds=${params.justLiftRestSeconds}" }
         } catch (e: Exception) {
             Logger.e(e) { "Failed to save Just Lift defaults: ${e.message}" }
         }
@@ -2529,19 +2533,29 @@ class ActiveSessionEngine(
                 enableHandleDetection()
                 bleRepository.enableJustLiftWaitingMode()
 
-                Logger.d("Just Lift: Machine armed & ready. summaryCountdownSeconds=$summaryCountdownSeconds, skipSummary=$skipSummary")
+                val justLiftRestSeconds = params.justLiftRestSeconds
+                Logger.d("Just Lift: Machine armed & ready. summaryCountdownSeconds=$summaryCountdownSeconds, skipSummary=$skipSummary, restSeconds=$justLiftRestSeconds")
 
                 if (skipSummary) {
-                    Logger.d("Just Lift: Summary OFF - skipping summary, immediately ready")
-                    resetForNewWorkout()
-                    coordinator._workoutState.value = WorkoutState.Idle
+                    Logger.d("Just Lift: Summary OFF - skipping summary")
+                    if (justLiftRestSeconds > 0) {
+                        startJustLiftRestTimer(justLiftRestSeconds)
+                    } else {
+                        resetForNewWorkout()
+                        coordinator._workoutState.value = WorkoutState.Idle
+                    }
                 } else if (summaryDelayMs > 0) {
                     delay(summaryDelayMs)
 
                     if (coordinator._workoutState.value is WorkoutState.SetSummary) {
-                        Logger.d("Just Lift: Summary complete, UI transitioning to Idle")
-                        resetForNewWorkout()
-                        coordinator._workoutState.value = WorkoutState.Idle
+                        if (justLiftRestSeconds > 0) {
+                            Logger.d("Just Lift: Summary complete, starting rest timer ($justLiftRestSeconds s)")
+                            startJustLiftRestTimer(justLiftRestSeconds)
+                        } else {
+                            Logger.d("Just Lift: Summary complete, UI transitioning to Idle")
+                            resetForNewWorkout()
+                            coordinator._workoutState.value = WorkoutState.Idle
+                        }
                     } else {
                         Logger.d("Just Lift: Summary interrupted by user action (state is ${coordinator._workoutState.value})")
                     }
@@ -2796,6 +2810,94 @@ class ActiveSessionEngine(
     }
 
     /**
+     * Start a simplified rest timer for Just Lift mode.
+     * Unlike the routine rest timer, this doesn't compute next-exercise metadata or advance
+     * to the next set — it simply counts down and transitions to Idle, ready for handle-grab
+     * auto-start of the next set.
+     *
+     * Issue #113: Configurable rest timer for Just Lift mode.
+     */
+    private fun startJustLiftRestTimer(restSeconds: Int) {
+        coordinator.restTimerJob?.cancel()
+
+        coordinator.restTimerJob = scope.launch {
+            Logger.d("startJustLiftRestTimer: starting $restSeconds s rest")
+
+            // Initialize rest timer control state (reuses +30s/pause/restart from Task 6)
+            coordinator._restOriginalDuration.value = restSeconds
+            coordinator._restSecondsRemaining.value = restSeconds
+            coordinator._isRestPaused.value = false
+
+            // Emit Resting state immediately
+            coordinator._workoutState.value = WorkoutState.Resting(
+                restSecondsRemaining = restSeconds,
+                nextExerciseName = "Just Lift",
+                isLastExercise = false,
+                currentSet = 0,
+                totalSets = 0,
+                isSupersetTransition = false,
+                supersetLabel = null
+            )
+
+            // LED Biofeedback: show blue during rest
+            coordinator.ledFeedbackController?.onRestPeriodStart()
+
+            var lastTickedSecond = -1
+            var lastDecrementTime = currentTimeMillis()
+
+            // Tick-based loop that respects pause/extend/reset via StateFlow
+            while (coordinator._restSecondsRemaining.value > 0 && isActive) {
+                val remainingSeconds = coordinator._restSecondsRemaining.value
+
+                // Emit countdown tick during last 10 seconds of rest
+                if (remainingSeconds in 1..10 && remainingSeconds != lastTickedSecond) {
+                    lastTickedSecond = remainingSeconds
+                    val prefs = settingsManager.userPreferences.value
+                    if (prefs.beepsEnabled && prefs.countdownBeepsEnabled) {
+                        coordinator._hapticEvents.emit(HapticEvent.COUNTDOWN_TICK(remainingSeconds))
+                    }
+                }
+
+                coordinator._workoutState.value = WorkoutState.Resting(
+                    restSecondsRemaining = remainingSeconds,
+                    nextExerciseName = "Just Lift",
+                    isLastExercise = false,
+                    currentSet = 0,
+                    totalSets = 0,
+                    isSupersetTransition = false,
+                    supersetLabel = null
+                )
+
+                delay(100)
+
+                // Decrement once per second, but only when not paused
+                if (!coordinator._isRestPaused.value) {
+                    val now = currentTimeMillis()
+                    if (now - lastDecrementTime >= 1000L) {
+                        coordinator._restSecondsRemaining.value =
+                            (coordinator._restSecondsRemaining.value - 1).coerceAtLeast(0)
+                        lastDecrementTime = now
+                    }
+                } else {
+                    // While paused, keep resetting the decrement anchor
+                    lastDecrementTime = currentTimeMillis()
+                }
+            }
+
+            // Clean up rest timer control state
+            coordinator._isRestPaused.value = false
+
+            // LED Biofeedback: resume normal feedback after rest
+            coordinator.ledFeedbackController?.onRestPeriodEnd()
+
+            // After rest completes, transition to Idle for next Just Lift set
+            Logger.d("startJustLiftRestTimer: rest complete, transitioning to Idle")
+            resetForNewWorkout()
+            coordinator._workoutState.value = WorkoutState.Idle
+        }
+    }
+
+    /**
      * Advance to the next set within a single exercise (non-routine mode).
      */
     private fun advanceToNextSetInSingleExercise() {
@@ -3033,7 +3135,9 @@ class ActiveSessionEngine(
     private fun startAutoStartTimer() {
         if (coordinator.autoStartJob != null) return
         val currentState = coordinator._workoutState.value
-        if (currentState !is WorkoutState.Idle && currentState !is WorkoutState.SetSummary) {
+        val isJustLift = coordinator._workoutParameters.value.isJustLift
+        if (currentState !is WorkoutState.Idle && currentState !is WorkoutState.SetSummary &&
+            !(isJustLift && currentState is WorkoutState.Resting)) {
             return
         }
 
@@ -3063,9 +3167,17 @@ class ActiveSessionEngine(
             }
 
             val state = coordinator._workoutState.value
-            if (state !is WorkoutState.Idle && state !is WorkoutState.SetSummary) {
+            if (state !is WorkoutState.Idle && state !is WorkoutState.SetSummary &&
+                !(params.isJustLift && state is WorkoutState.Resting)) {
                 Logger.d("Auto-start aborted: workout state changed (state=$state)")
                 return@launch
+            }
+
+            // Cancel rest timer if starting a new set during rest (Just Lift)
+            if (state is WorkoutState.Resting && params.isJustLift) {
+                Logger.d("Just Lift: Cancelling rest timer - user grabbed handles to start next set")
+                coordinator.restTimerJob?.cancel()
+                coordinator._isRestPaused.value = false
             }
 
             Logger.d { "Issue221: Auto-start timer complete - params.isJustLift=${params.isJustLift}, params.useAutoStart=${params.useAutoStart}" }

@@ -320,7 +320,9 @@ data class WorkoutParameters(
     val repCountTiming: RepCountTiming = RepCountTiming.TOP,  // When to count working reps (TOP=concentric peak, BOTTOM=eccentric valley)
     // Echo-specific settings (only used when programMode == ProgramMode.Echo)
     val echoLevel: EchoLevel = EchoLevel.HARD,
-    val eccentricLoad: EccentricLoad = EccentricLoad.LOAD_100
+    val eccentricLoad: EccentricLoad = EccentricLoad.LOAD_100,
+    // Just Lift rest timer (0 = off, 5-300 in 5s increments)
+    val justLiftRestSeconds: Int = 0
 ) {
     /** True if this is an Echo workout */
     val isEchoMode: Boolean get() = programMode == ProgramMode.Echo

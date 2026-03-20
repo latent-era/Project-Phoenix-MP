@@ -90,6 +90,7 @@ fun JustLiftScreen(
     var echoLevel by remember { mutableStateOf(EchoLevel.HARDER) }
     var repCountTiming by remember { mutableStateOf(RepCountTiming.TOP) }
     var stallDetectionEnabled by remember { mutableStateOf(true) }
+    var restSeconds by remember { mutableStateOf(60) }  // Rest timer between sets (0 = off)
     var defaultsLoaded by remember { mutableStateOf(false) }
     // Profile management
     val scope = rememberCoroutineScope()
@@ -127,7 +128,10 @@ fun JustLiftScreen(
             // Restore stall detection
             stallDetectionEnabled = defaults.stallDetectionEnabled
 
-            Logger.d("Loaded Just Lift defaults: modeId=${defaults.workoutModeId}, weight=${defaults.weightPerCableKg}kg, progression=${defaults.weightChangePerRep}, repTiming=${defaults.repCountTimingName}")
+            // Restore rest timer duration
+            restSeconds = defaults.restSeconds
+
+            Logger.d("Loaded Just Lift defaults: modeId=${defaults.workoutModeId}, weight=${defaults.weightPerCableKg}kg, progression=${defaults.weightChangePerRep}, repTiming=${defaults.repCountTimingName}, restSeconds=${defaults.restSeconds}")
             defaultsLoaded = true
         }
     }
@@ -171,7 +175,7 @@ fun JustLiftScreen(
     // BUG FIX: Added eccentricLoad and echoLevel to dependencies - without these,
     // changing eccentric load percentage (e.g., from 100% to 150%) would NOT update
     // workoutParameters, causing the machine to receive wrong eccentric load value
-    LaunchedEffect(selectedMode, weightPerCable, weightChangePerRep, stallDetectionEnabled, eccentricLoad, echoLevel, repCountTiming) {
+    LaunchedEffect(selectedMode, weightPerCable, weightChangePerRep, stallDetectionEnabled, eccentricLoad, echoLevel, repCountTiming, restSeconds) {
         val weightChangeKg = if (weightUnit == WeightUnit.LB) {
             weightChangePerRep / 2.20462f
         } else {
@@ -189,7 +193,8 @@ fun JustLiftScreen(
             useAutoStart = true, // Enable auto-start for Just Lift
             stallDetectionEnabled = stallDetectionEnabled,
             repCountTiming = repCountTiming,
-            selectedExerciseId = null // Issue #97: Clear exercise ID for Just Lift sessions
+            selectedExerciseId = null, // Issue #97: Clear exercise ID for Just Lift sessions
+            justLiftRestSeconds = restSeconds  // Issue #113: Configurable rest timer
         )
         Logger.i { "WEIGHT_DEBUG[Params]: weightPerCable=$weightPerCable kg → updatedParameters.weightPerCableKg=${updatedParameters.weightPerCableKg} kg" }
         Logger.d { "JustLift: Updating params - eccentricLoad=${eccentricLoad.percentage}%, echoLevel=${newEchoLevel.displayName}" }
@@ -558,6 +563,42 @@ fun JustLiftScreen(
                         Switch(
                             checked = stallDetectionEnabled,
                             onCheckedChange = { stallDetectionEnabled = it }
+                        )
+                    }
+                }
+
+                // Rest Timer picker
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.medium),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.small)
+                    ) {
+                        CompactNumberPicker(
+                            value = restSeconds.toFloat(),
+                            onValueChange = { newValue ->
+                                restSeconds = newValue.toInt()
+                            },
+                            range = 0f..300f,
+                            step = 5f,
+                            label = "Rest Timer",
+                            suffix = if (restSeconds == 0) "Off" else "sec",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = if (restSeconds == 0) "No rest between sets"
+                                   else "Rest $restSeconds seconds between sets",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }

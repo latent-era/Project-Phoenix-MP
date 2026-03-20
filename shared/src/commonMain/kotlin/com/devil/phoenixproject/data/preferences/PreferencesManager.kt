@@ -66,7 +66,8 @@ data class JustLiftDefaults(
     val eccentricLoadPercentage: Int = 100,
     val echoLevelValue: Int = 2,
     val stallDetectionEnabled: Boolean = true,  // Stall detection auto-stop toggle
-    val repCountTimingName: String = "TOP"  // RepCountTiming enum name
+    val repCountTimingName: String = "TOP",  // RepCountTiming enum name
+    val restSeconds: Int = 60  // Rest timer between sets (0 = off, 5-300 in 5s increments)
 ) {
     fun getEccentricLoad(): com.devil.phoenixproject.domain.model.EccentricLoad {
         // Handle legacy 125% -> fall back to 120%
