@@ -2308,8 +2308,9 @@ private fun VoiceEmergencyStopSection(
 
                     Button(
                         onClick = {
-                            // Save the word before starting calibration
+                            // Save the word and reset calibration before starting
                             if (localSafeWord.isNotBlank()) {
+                                onSafeWordCalibratedChange(false)
                                 onSafeWordChange(localSafeWord)
                                 showCalibrationDialog = true
                             }
@@ -2424,6 +2425,12 @@ private fun SafeWordCalibrationDialog(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
                         )
+                        OutlinedButton(
+                            onClick = { com.devil.phoenixproject.util.openAppSettings() },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(stringResource(Res.string.settings_calibration_open_settings))
+                        }
                     }
                     calibrationFailed -> {
                         Text(

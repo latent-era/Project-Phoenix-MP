@@ -575,7 +575,8 @@
     <string name="settings_calibration_success">Safe word calibrated successfully!</string>
     <string name="settings_calibration_fail">Detection was unreliable. Try a different word.</string>
     <string name="settings_calibration_progress">%1$d of 3 detections</string>
-    <string name="settings_calibration_mic_error">Could not access the microphone. Check permissions and try again.</string>
+    <string name="settings_calibration_mic_error">Microphone permission is required for voice calibration. Please grant microphone access in your device settings, then try again.</string>
+    <string name="settings_calibration_open_settings">Open Settings</string>
     <string name="cd_voice_stop">Voice emergency stop</string>
     <string name="cd_calibration_check">Calibration check</string>
 </resources>
