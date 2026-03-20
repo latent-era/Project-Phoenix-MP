@@ -148,7 +148,7 @@ class SqlDelightSyncRepository(
                     clientId = row.id.toString(),
                     totalWorkouts = row.totalWorkouts.toInt(),
                     totalReps = row.totalReps.toInt(),
-                    totalVolumeKg = row.totalVolumeKg.toInt(),
+                    totalVolumeKg = row.totalVolumeKg.toFloat(),
                     longestStreak = row.longestStreak.toInt(),
                     currentStreak = row.currentStreak.toInt(),
                     updatedAt = row.updatedAt ?: row.lastUpdated
