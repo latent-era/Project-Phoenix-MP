@@ -1,6 +1,5 @@
 package com.devil.phoenixproject.data.preferences
 
-import com.devil.phoenixproject.domain.model.HudPreset
 import com.devil.phoenixproject.domain.model.RepCountTiming
 import com.devil.phoenixproject.domain.model.UserPreferences
 import com.devil.phoenixproject.domain.model.WeightUnit
@@ -112,7 +111,6 @@ interface PreferencesManager {
     suspend fun setAudioRepCountEnabled(enabled: Boolean)
     suspend fun setLedFeedbackEnabled(enabled: Boolean)
     suspend fun setColorBlindModeEnabled(enabled: Boolean)
-    suspend fun setHudPreset(preset: String)
     suspend fun setRepCountTiming(timing: RepCountTiming)
     suspend fun setSummaryCountdownSeconds(seconds: Int)
     suspend fun setAutoStartCountdownSeconds(seconds: Int)
@@ -179,7 +177,7 @@ class SettingsPreferencesManager(
         private const val KEY_AUDIO_REP_COUNT = "audio_rep_count_enabled"
         private const val KEY_LED_FEEDBACK_ENABLED = "led_feedback_enabled"
         private const val KEY_COLOR_BLIND_MODE = "color_blind_mode_enabled"
-        private const val KEY_HUD_PRESET = "hud_preset"
+        private const val LEGACY_KEY_HUD_PRESET = "hud_preset"
         private const val KEY_SUMMARY_COUNTDOWN_SECONDS = "summary_countdown_seconds"
         private const val KEY_AUTOSTART_COUNTDOWN_SECONDS = "autostart_countdown_seconds"
         private const val KEY_REP_COUNT_TIMING = "rep_count_timing"
@@ -205,6 +203,9 @@ class SettingsPreferencesManager(
     override val preferencesFlow: StateFlow<UserPreferences> = _preferencesFlow
 
     private fun loadPreferences(): UserPreferences {
+        // HUD preset rollback: ignore and remove the retired key on upgraded installs.
+        settings.remove(LEGACY_KEY_HUD_PRESET)
+
         return UserPreferences(
             weightUnit = settings.getStringOrNull(KEY_WEIGHT_UNIT)?.let {
                 WeightUnit.entries.find { unit -> unit.name == it }
@@ -219,7 +220,6 @@ class SettingsPreferencesManager(
             audioRepCountEnabled = settings.getBoolean(KEY_AUDIO_REP_COUNT, false),
             ledFeedbackEnabled = settings.getBoolean(KEY_LED_FEEDBACK_ENABLED, false),
             colorBlindModeEnabled = settings.getBoolean(KEY_COLOR_BLIND_MODE, false),
-            hudPreset = settings.getStringOrNull(KEY_HUD_PRESET) ?: HudPreset.FULL.key,
             repCountTiming = settings.getStringOrNull(KEY_REP_COUNT_TIMING)?.let {
                 try { RepCountTiming.valueOf(it) } catch (_: Exception) { null }
             } ?: RepCountTiming.TOP,
@@ -295,11 +295,6 @@ class SettingsPreferencesManager(
     override suspend fun setColorBlindModeEnabled(enabled: Boolean) {
         settings.putBoolean(KEY_COLOR_BLIND_MODE, enabled)
         updateAndEmit { copy(colorBlindModeEnabled = enabled) }
-    }
-
-    override suspend fun setHudPreset(preset: String) {
-        settings.putString(KEY_HUD_PRESET, preset)
-        updateAndEmit { copy(hudPreset = preset) }
     }
 
     override suspend fun setRepCountTiming(timing: RepCountTiming) {

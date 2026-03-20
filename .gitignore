@@ -87,3 +87,4 @@ tmpclaude-*-cwd
 repomix-output.xml
 bugreport-*.zip
 .codex_tmp/
+/.gradle-local/

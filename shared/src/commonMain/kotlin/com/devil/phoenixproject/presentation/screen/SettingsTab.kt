@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.devil.phoenixproject.domain.model.HudPreset
 import com.devil.phoenixproject.domain.model.WeightUnit
 import com.devil.phoenixproject.util.ColorSchemes
 import com.devil.phoenixproject.util.BackupProgress
@@ -43,7 +42,6 @@ import org.jetbrains.compose.resources.stringResource
 import vitruvianprojectphoenix.shared.generated.resources.Res
 import vitruvianprojectphoenix.shared.generated.resources.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsTab(
     weightUnit: WeightUnit,
@@ -92,9 +90,6 @@ fun SettingsTab(
     // MVP: Removed for v0.7.0 — Color-blind mode UI commented out, params kept for re-enablement
     @Suppress("UNUSED_PARAMETER") colorBlindModeEnabled: Boolean = false,
     @Suppress("UNUSED_PARAMETER") onColorBlindModeChange: (Boolean) -> Unit = {},
-    // HUD preset customization
-    hudPreset: String = HudPreset.FULL.key,
-    onHudPresetChange: (String) -> Unit = {},
     // Gamification toggle
     gamificationEnabled: Boolean = true,
     onGamificationEnabledChange: (Boolean) -> Unit = {},
@@ -1137,86 +1132,6 @@ fun SettingsTab(
 //            }
 //        }
 //    }
-
-    // Workout HUD Section - Preset page visibility
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.medium)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFF5C6BC0), Color(0xFF7E57C2))
-                            ),
-                            RoundedCornerShape(20.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Dashboard,
-                        contentDescription = stringResource(Res.string.cd_workout_hud),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(Spacing.medium))
-                Text(
-                    "Workout HUD",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.medium))
-
-            Text(
-                "Choose which pages to show during workouts",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.small))
-
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                HudPreset.entries.forEachIndexed { index, preset ->
-                    SegmentedButton(
-                        selected = hudPreset == preset.key,
-                        onClick = { onHudPresetChange(preset.key) },
-                        shape = SegmentedButtonDefaults.itemShape(index, HudPreset.entries.size)
-                    ) {
-                        Text(preset.displayName)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.small))
-
-            // Description of selected preset
-            val selectedPreset = HudPreset.fromKey(hudPreset)
-            Text(
-                selectedPreset.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
 
     // LED Biofeedback Section - Phoenix tier gated (GATE-01)
     if (hasProAccess) {

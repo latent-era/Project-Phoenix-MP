@@ -90,7 +90,6 @@ fun WorkoutHud(
     detectionState: DetectionState = DetectionState(),
     onDetectionConfirmed: suspend (exerciseId: String, exerciseName: String) -> Unit = { _, _ -> },
     onDetectionDismissed: () -> Unit = {},
-    hudPreset: String = HudPreset.FULL.key,  // HUD page preset for pager filtering
     // CV Form Check parameters (Phase 19)
     isFormCheckEnabled: Boolean = false,
     hasFormCheckAccess: Boolean = false,
@@ -105,9 +104,6 @@ fun WorkoutHud(
     val scope = rememberCoroutineScope()
     // Determine if we're in Echo mode
     val isEchoMode = workoutParameters.isEchoMode
-    val visiblePages = remember(hudPreset) {
-        HudPreset.fromKey(hudPreset).pages
-    }
     // Resolve current exercise's form type for FormCheckOverlay (CV-04 gap closure)
     val currentExerciseName = remember(loadedRoutine, currentExerciseIndex) {
         loadedRoutine?.exercises?.getOrNull(currentExerciseIndex)?.exercise?.name
@@ -115,7 +111,7 @@ fun WorkoutHud(
     val exerciseFormType = remember(currentExerciseName) {
         ExerciseFormType.fromExerciseName(currentExerciseName)
     }
-    val pagerState = rememberPagerState(pageCount = { visiblePages.size })
+    val pagerState = rememberPagerState(pageCount = { 3 })
     val topBarModeLabel = if (isCurrentExerciseBodyweight) "Bodyweight" else workoutParameters.programMode.displayName
 
     // Track consecutive high-asymmetry reps for alert (ASYM-05)
@@ -175,9 +171,9 @@ fun WorkoutHud(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
-            ) { pageIndex ->
-                when (visiblePages[pageIndex]) {
-                    HudPage.EXECUTION -> {
+            ) { page ->
+                when (page) {
+                    0 -> {
                         // Derive exercise info for display
                         val currentExercise = loadedRoutine?.exercises?.getOrNull(currentExerciseIndex)
                         val exerciseName = currentExercise?.exercise?.name
@@ -200,13 +196,13 @@ fun WorkoutHud(
                             isCurrentExerciseBodyweight = isCurrentExerciseBodyweight
                         )
                     }
-                    HudPage.INSTRUCTION -> InstructionPage(
+                    1 -> InstructionPage(
                         loadedRoutine = loadedRoutine,
                         currentExerciseIndex = currentExerciseIndex,
                         exerciseRepository = exerciseRepository,
                         enableVideoPlayback = enableVideoPlayback
                     )
-                    HudPage.STATS -> StatsPage(
+                    2 -> StatsPage(
                         metric = metric,
                         weightUnit = weightUnit,
                         formatWeight = formatWeight,
