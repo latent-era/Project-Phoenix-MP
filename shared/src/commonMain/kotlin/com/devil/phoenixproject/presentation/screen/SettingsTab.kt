@@ -52,6 +52,9 @@ fun SettingsTab(
     repSoundEnabled: Boolean = true,
     onCountdownBeepsChange: (Boolean) -> Unit = {},
     onRepSoundChange: (Boolean) -> Unit = {},
+    // Issue #237: Motion-triggered set start
+    motionStartEnabled: Boolean = false,
+    onMotionStartChange: (Boolean) -> Unit = {},
     summaryCountdownSeconds: Int = 10,
     autoStartCountdownSeconds: Int = 5,
     selectedColorSchemeIndex: Int = 0,
@@ -712,6 +715,36 @@ fun SettingsTab(
                     Switch(
                         checked = repSoundEnabled,
                         onCheckedChange = onRepSoundChange
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.medium))
+
+                // Issue #237: Motion-triggered set start toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            "Motion-Triggered Set Start",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Start sets by holding the cable instead of countdown",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = motionStartEnabled,
+                        onCheckedChange = onMotionStartChange
                     )
                 }
 

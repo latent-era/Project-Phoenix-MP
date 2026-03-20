@@ -144,6 +144,10 @@ class SettingsManager(
         scope.launch { preferencesManager.setRepSoundEnabled(enabled) }
     }
 
+    fun setMotionStartEnabled(enabled: Boolean) {
+        scope.launch { preferencesManager.setMotionStartEnabled(enabled) }
+    }
+
     fun setColorScheme(schemeIndex: Int) {
         scope.launch {
             bleRepository.setColorScheme(schemeIndex)

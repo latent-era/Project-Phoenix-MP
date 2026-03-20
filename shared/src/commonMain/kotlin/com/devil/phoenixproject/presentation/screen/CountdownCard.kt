@@ -3,9 +3,11 @@ package com.devil.phoenixproject.presentation.screen
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -20,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,7 +53,9 @@ fun CountdownCard(
     isEchoMode: Boolean = false,
     onSkipCountdown: () -> Unit,
     onEndWorkout: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Issue #237: Motion-triggered set start progress (null = disabled, 0..1 = hold progress)
+    motionStartHoldProgress: Float? = null
 ) {
     // Responsive sizing based on window size class
     val windowSizeClass = LocalWindowSizeClass.current
@@ -133,6 +139,14 @@ fun CountdownCard(
             Spacer(modifier = Modifier.weight(0.5f))
 
             // Center section: Countdown circle
+            // Issue #237: Animate motion-start hold progress for smooth ring-fill
+            val animatedHoldProgress by animateFloatAsState(
+                targetValue = motionStartHoldProgress ?: 0f,
+                animationSpec = tween(durationMillis = 100),
+                label = "motion-start-hold"
+            )
+            val motionStartArcColor = MaterialTheme.colorScheme.tertiary
+
             Box(
                 modifier = Modifier.size(countdownSize),
                 contentAlignment = Alignment.Center
@@ -152,6 +166,19 @@ fun CountdownCard(
                             )
                         )
                 )
+
+                // Issue #237: Motion-start ring-fill arc overlay
+                if (motionStartHoldProgress != null && animatedHoldProgress > 0f) {
+                    Canvas(modifier = Modifier.size(countdownSize - 8.dp)) {
+                        drawArc(
+                            color = motionStartArcColor,
+                            startAngle = -90f,
+                            sweepAngle = 360f * animatedHoldProgress,
+                            useCenter = false,
+                            style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
+                        )
+                    }
+                }
 
                 // Inner circle
                 Box(

@@ -107,6 +107,10 @@ class ActiveSessionEngine(
     /** Detector for identifying rep phase boundaries from position data */
     private val repBoundaryDetector = RepBoundaryDetector()
 
+    /** Issue #237: Motion-triggered set start detector (reused across sets) */
+    private val motionStartDetector = MotionStartDetector()
+    private var motionStartListenerJob: Job? = null
+
     // ===== Init Block: Workout-Related Collectors (moved from DWSM) =====
 
     init {
@@ -1625,11 +1629,13 @@ class ActiveSessionEngine(
                 coordinator.warmupCompleteTimeMs = 0
 
                 if (!coordinator.skipCountdownRequested) {
+                    startMotionStartDetection()
                     for (i in 5 downTo 1) {
                         if (coordinator.skipCountdownRequested) break
                         coordinator._workoutState.value = WorkoutState.Countdown(i)
                         delay(1000)
                     }
+                    stopMotionStartDetection()
                 }
 
                 coordinator._workoutState.value = WorkoutState.Active
@@ -1740,11 +1746,13 @@ class ActiveSessionEngine(
             }
 
             if (!coordinator.skipCountdownRequested && !isJustLiftMode) {
+                startMotionStartDetection()
                 for (i in 5 downTo 1) {
                     if (coordinator.skipCountdownRequested) break
                     coordinator._workoutState.value = WorkoutState.Countdown(i)
                     delay(1000)
                 }
+                stopMotionStartDetection()
             }
 
             try {
@@ -1856,6 +1864,61 @@ class ActiveSessionEngine(
     fun skipCountdown() {
         coordinator.skipCountdownRequested = true
         Logger.d { "skipCountdown: Countdown skip requested" }
+    }
+
+    /**
+     * Issue #237: Start motion-start detection during countdown.
+     * Collects metricsFlow and feeds load values to the MotionStartDetector.
+     * On [MotionStartEvent.Started], calls [skipCountdown] to begin the set immediately.
+     * On [MotionStartEvent.CountdownTick], updates hold progress for the ring-fill UI.
+     * On [MotionStartEvent.Cancelled], resets progress.
+     */
+    private fun startMotionStartDetection() {
+        val prefs = settingsManager.userPreferences.value
+        if (!prefs.motionStartEnabled) return
+
+        motionStartDetector.reset()
+        coordinator._motionStartHoldProgress.value = 0f
+
+        // Listen for detector events
+        motionStartListenerJob?.cancel()
+        motionStartListenerJob = scope.launch {
+            // Event listener coroutine
+            launch {
+                motionStartDetector.events.collect { event ->
+                    when (event) {
+                        is MotionStartEvent.Started -> {
+                            coordinator._motionStartHoldProgress.value = 1f
+                            Logger.d { "MotionStart: Cable hold complete, skipping countdown" }
+                            skipCountdown()
+                        }
+                        is MotionStartEvent.CountdownTick -> {
+                            val progress = 1f - (event.remainingMs.toFloat() / 1500f)
+                            coordinator._motionStartHoldProgress.value = progress.coerceIn(0f, 1f)
+                        }
+                        is MotionStartEvent.Cancelled -> {
+                            coordinator._motionStartHoldProgress.value = 0f
+                        }
+                    }
+                }
+            }
+            // Metric feeder coroutine
+            launch {
+                bleRepository.metricsFlow.collect { metric ->
+                    // Use average of both cables for load detection
+                    val load = (metric.loadA + metric.loadB) / 2f
+                    motionStartDetector.onMetricReceived(load, metric.timestamp)
+                }
+            }
+        }
+    }
+
+    /** Issue #237: Stop motion-start detection and clear UI state. */
+    private fun stopMotionStartDetection() {
+        motionStartListenerJob?.cancel()
+        motionStartListenerJob = null
+        motionStartDetector.reset()
+        coordinator._motionStartHoldProgress.value = null
     }
 
     fun stopWorkout(exitingWorkout: Boolean = false) {

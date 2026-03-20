@@ -81,7 +81,9 @@ data class WorkoutUiState(
     val latestFormScore: Int? = null,
     // Ghost Racing state (Phase 22)
     val ghostSession: GhostSession? = null,
-    val latestGhostVerdict: GhostRepComparison? = null
+    val latestGhostVerdict: GhostRepComparison? = null,
+    // Issue #237: Motion-triggered set start hold progress (0.0-1.0, null = not active)
+    val motionStartHoldProgress: Float? = null
 )
 
 /**

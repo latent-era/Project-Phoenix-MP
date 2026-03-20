@@ -125,7 +125,8 @@ fun WorkoutTab(
         onToggleFormCheck = onToggleFormCheck,
         onFormAssessment = onFormAssessment,
         ghostSession = state.ghostSession,
-        latestGhostVerdict = state.latestGhostVerdict
+        latestGhostVerdict = state.latestGhostVerdict,
+        motionStartHoldProgress = state.motionStartHoldProgress
     )
 }
 
@@ -198,7 +199,9 @@ fun WorkoutTab(
     onFormAssessment: (FormAssessment) -> Unit = {},
     // Ghost Racing parameters (Phase 22)
     ghostSession: GhostSession? = null,
-    latestGhostVerdict: GhostRepComparison? = null
+    latestGhostVerdict: GhostRepComparison? = null,
+    // Issue #237: Motion-triggered set start
+    motionStartHoldProgress: Float? = null
 ) {
     // Note: HapticFeedbackEffect is now global in EnhancedMainScreen
     // No need for local haptic effect here
@@ -418,7 +421,8 @@ fun WorkoutTab(
                             formatWeight = { weight -> formatWeight(weight, weightUnit) },
                             isEchoMode = workoutParameters.isEchoMode,
                             onSkipCountdown = onSkipCountdown,
-                            onEndWorkout = onStopWorkout
+                            onEndWorkout = onStopWorkout,
+                            motionStartHoldProgress = motionStartHoldProgress
                         )
                     }
                 }

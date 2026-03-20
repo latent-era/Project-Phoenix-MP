@@ -130,6 +130,8 @@ interface PreferencesManager {
     // Issue #100: Per-sound toggles
     suspend fun setCountdownBeepsEnabled(enabled: Boolean)
     suspend fun setRepSoundEnabled(enabled: Boolean)
+    // Issue #237: Motion-triggered set start
+    suspend fun setMotionStartEnabled(enabled: Boolean)
 
     suspend fun getSingleExerciseDefaults(exerciseId: String): SingleExerciseDefaults?
     suspend fun saveSingleExerciseDefaults(defaults: SingleExerciseDefaults)
@@ -182,6 +184,7 @@ class SettingsPreferencesManager(
         private const val KEY_BODY_WEIGHT_KG = "body_weight_kg"
         private const val KEY_COUNTDOWN_BEEPS_ENABLED = "countdown_beeps_enabled"
         private const val KEY_REP_SOUND_ENABLED = "rep_sound_enabled"
+        private const val KEY_MOTION_START = "motion_start_enabled"
     }
 
     private val _preferencesFlow = MutableStateFlow(loadPreferences())
@@ -215,7 +218,8 @@ class SettingsPreferencesManager(
             autoStartRoutine = settings.getBoolean(KEY_AUTO_START_ROUTINE, false),
             bodyWeightKg = settings.getFloat(KEY_BODY_WEIGHT_KG, 0f),
             countdownBeepsEnabled = settings.getBoolean(KEY_COUNTDOWN_BEEPS_ENABLED, true),
-            repSoundEnabled = settings.getBoolean(KEY_REP_SOUND_ENABLED, true)
+            repSoundEnabled = settings.getBoolean(KEY_REP_SOUND_ENABLED, true),
+            motionStartEnabled = settings.getBoolean(KEY_MOTION_START, false)
         )
     }
 
@@ -399,5 +403,10 @@ class SettingsPreferencesManager(
     override suspend fun setRepSoundEnabled(enabled: Boolean) {
         settings.putBoolean(KEY_REP_SOUND_ENABLED, enabled)
         updateAndEmit { copy(repSoundEnabled = enabled) }
+    }
+
+    override suspend fun setMotionStartEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_MOTION_START, enabled)
+        updateAndEmit { copy(motionStartEnabled = enabled) }
     }
 }

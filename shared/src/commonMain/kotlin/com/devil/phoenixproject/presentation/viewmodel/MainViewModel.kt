@@ -145,6 +145,7 @@ class MainViewModel constructor(
     val isCurrentExerciseBodyweight: StateFlow<Boolean> get() = workoutSessionManager.coordinator.isCurrentExerciseBodyweight
     val latestRepQuality get() = workoutSessionManager.coordinator.latestRepQuality
     val latestBiomechanicsResult get() = workoutSessionManager.coordinator.latestBiomechanicsResult
+    val motionStartHoldProgress: StateFlow<Float?> get() = workoutSessionManager.coordinator.motionStartHoldProgress
     val cycleDayCompletionEvent get() = workoutSessionManager.coordinator.cycleDayCompletionEvent
     fun clearCycleDayCompletionEvent() = workoutSessionManager.clearCycleDayCompletionEvent()
 
@@ -259,6 +260,7 @@ class MainViewModel constructor(
     fun setGamificationEnabled(enabled: Boolean) = settingsManager.setGamificationEnabled(enabled)
     fun setCountdownBeepsEnabled(enabled: Boolean) = settingsManager.setCountdownBeepsEnabled(enabled)
     fun setRepSoundEnabled(enabled: Boolean) = settingsManager.setRepSoundEnabled(enabled)
+    fun setMotionStartEnabled(enabled: Boolean) = settingsManager.setMotionStartEnabled(enabled)
     fun kgToDisplay(kg: Float, unit: WeightUnit) = settingsManager.kgToDisplay(kg, unit)
     fun displayToKg(display: Float, unit: WeightUnit) = settingsManager.displayToKg(display, unit)
     fun formatWeight(kg: Float, unit: WeightUnit) = settingsManager.formatWeight(kg, unit)

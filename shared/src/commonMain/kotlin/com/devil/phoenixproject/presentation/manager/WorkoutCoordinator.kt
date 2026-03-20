@@ -126,6 +126,13 @@ class WorkoutCoordinator(
     val loadBaselineA: StateFlow<Float> = _loadBaselineA.asStateFlow()
     val loadBaselineB: StateFlow<Float> = _loadBaselineB.asStateFlow()
 
+    // ===== Motion Start State (Issue #237) =====
+
+    // Progress of cable-hold for motion-triggered set start (0.0 = no hold, 1.0 = complete)
+    // Null means motion start is not active (feature disabled or not in countdown)
+    internal val _motionStartHoldProgress = MutableStateFlow<Float?>(null)
+    val motionStartHoldProgress: StateFlow<Float?> = _motionStartHoldProgress.asStateFlow()
+
     // ===== Workout Parameters =====
 
     internal val _workoutParameters = MutableStateFlow(

@@ -70,6 +70,8 @@ fun ActiveWorkoutScreen(
     // Ghost Racing state (Phase 22)
     val ghostSession by viewModel.ghostSession.collectAsState()
     val latestGhostVerdict by viewModel.latestGhostVerdict.collectAsState()
+    // Issue #237: Motion-triggered set start
+    val motionStartHoldProgress by viewModel.motionStartHoldProgress.collectAsState()
     @Suppress("UNUSED_VARIABLE") // Reserved for future connecting overlay
     val isAutoConnecting by viewModel.isAutoConnecting.collectAsState()
     val connectionError by viewModel.connectionError.collectAsState()
@@ -335,7 +337,8 @@ fun ActiveWorkoutScreen(
         timedExerciseRemainingSeconds, isCurrentExerciseBodyweight, gatedRepQualityScore,
         gatedBiomechanicsResult, detectionState, hudPreset,
         isFormCheckEnabled, latestFormViolations, latestFormScore,
-        gatedGhostSession, gatedGhostVerdict
+        gatedGhostSession, gatedGhostVerdict,
+        motionStartHoldProgress
     ) {
         WorkoutUiState(
             connectionState = connectionState,
@@ -370,7 +373,8 @@ fun ActiveWorkoutScreen(
             latestFormViolations = latestFormViolations,
             latestFormScore = latestFormScore,
             ghostSession = gatedGhostSession,
-            latestGhostVerdict = gatedGhostVerdict
+            latestGhostVerdict = gatedGhostVerdict,
+            motionStartHoldProgress = motionStartHoldProgress
         )
     }
 
