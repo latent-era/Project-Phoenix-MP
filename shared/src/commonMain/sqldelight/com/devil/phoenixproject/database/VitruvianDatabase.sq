@@ -103,6 +103,8 @@ CREATE TABLE WorkoutSession (
     deletedAt INTEGER
 );
 
+CREATE INDEX idx_workout_session_timestamp ON WorkoutSession(timestamp);
+
 -- Exercise metrics (samples during workout)
 CREATE TABLE MetricSample (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
