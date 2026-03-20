@@ -132,6 +132,11 @@ fun SettingsTab(
     val backupManager: DataBackupManager = koinInject()
     val preferencesManager: com.devil.phoenixproject.data.preferences.PreferencesManager = koinInject()
     val autoBackupEnabled by preferencesManager.preferencesFlow.collectAsState()
+    // Backup stats: file count and total size (refreshed when auto-backup toggle changes)
+    var backupStats by remember { mutableStateOf<com.devil.phoenixproject.util.BackupStats?>(null) }
+    LaunchedEffect(autoBackupEnabled.autoBackupEnabled) {
+        backupStats = backupManager.getBackupStats()
+    }
     // Inject SubscriptionManager for tier gating
     val subscriptionManager: SubscriptionManager = koinInject()
     // Inject SyncTriggerManager for sync error indicator
@@ -1271,9 +1276,67 @@ fun SettingsTab(
                     Switch(
                         checked = autoBackupEnabled.autoBackupEnabled,
                         onCheckedChange = { enabled ->
-                            scope.launch { preferencesManager.setAutoBackupEnabled(enabled) }
+                            scope.launch {
+                                preferencesManager.setAutoBackupEnabled(enabled)
+                                // Refresh stats after toggling
+                                backupStats = backupManager.getBackupStats()
+                            }
                         }
                     )
+                }
+
+                // Backup stats: file count and total size
+                backupStats?.let { stats ->
+                    if (stats.fileCount > 0) {
+                        Spacer(modifier = Modifier.height(Spacing.small))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceContainerLow,
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .padding(horizontal = Spacing.medium, vertical = Spacing.small),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "${stats.fileCount} backup file${if (stats.fileCount != 1) "s" else ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                stats.formattedSize,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(Spacing.small))
+
+                        // Open backup folder shortcut
+                        OutlinedButton(
+                            onClick = { backupManager.openBackupFolder() },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        ) {
+                            Icon(
+                                Icons.Default.FolderOpen,
+                                contentDescription = "Open backup folder",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(Spacing.small))
+                            Text(
+                                "Open Backup Folder",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.small))

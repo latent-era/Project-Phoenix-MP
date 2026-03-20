@@ -66,6 +66,54 @@ class IosDataBackupManager(
         return dir
     }
 
+    override fun listBackupFileSizes(): List<Long> {
+        val dir = getSessionBackupDirectory()
+        val contents = fileManager.contentsOfDirectoryAtPath(dir, error = null) ?: return emptyList()
+        val sizes = mutableListOf<Long>()
+        for (item in contents) {
+            val fileName = item as? String ?: continue
+            if (!fileName.endsWith(".json")) continue
+            val filePath = "$dir/$fileName"
+            val attrs = fileManager.attributesOfItemAtPath(filePath, error = null) ?: continue
+            val size = (attrs[NSFileSize] as? NSNumber)?.longValue ?: 0L
+            sizes.add(size)
+        }
+        return sizes
+    }
+
+    /**
+     * iOS does not support opening arbitrary folders in Files.app programmatically.
+     * Present a share sheet for the backup directory so the user can interact with it
+     * via any installed file manager or sharing target.
+     */
+    override fun openBackupFolder() {
+        val dir = getSessionBackupDirectory()
+        val fileURL = NSURL.fileURLWithPath(dir)
+
+        dispatch_async(dispatch_get_main_queue()) {
+            val scenes = UIApplication.sharedApplication.connectedScenes
+            val windowScene = scenes.firstOrNull { it is UIWindowScene } as? UIWindowScene
+            val rootViewController = windowScene?.keyWindow?.rootViewController ?: return@dispatch_async
+
+            val activityVC = UIActivityViewController(
+                activityItems = listOf(fileURL),
+                applicationActivities = null
+            )
+
+            if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
+                activityVC.valueForKey("popoverPresentationController")?.let { popover ->
+                    (popover as? NSObject)?.setValue(rootViewController.view, forKey = "sourceView")
+                }
+            }
+
+            rootViewController.presentViewController(
+                activityVC,
+                animated = true,
+                completion = null
+            )
+        }
+    }
+
     override fun createBackupWriter(): BackupJsonWriter {
         val timestamp = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd")
             .replace("-", "") + "_" +

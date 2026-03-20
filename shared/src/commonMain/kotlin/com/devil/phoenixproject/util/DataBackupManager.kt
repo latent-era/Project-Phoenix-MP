@@ -62,6 +62,18 @@ interface DataBackupManager {
      * Returns the file path of the written backup on success.
      */
     suspend fun exportSession(sessionId: String): Result<String>
+
+    /**
+     * Returns file count and total size of session auto-backup files on disk.
+     */
+    suspend fun getBackupStats(): BackupStats
+
+    /**
+     * Open the backup folder in the platform's file manager.
+     * - Android: launches an ACTION_VIEW intent for the directory
+     * - iOS: not directly supported; implementations may show a share sheet for the folder
+     */
+    fun openBackupFolder()
 }
 
 /**
@@ -99,6 +111,12 @@ abstract class BaseDataBackupManager(
      * The directory is created if it does not exist.
      */
     protected abstract fun getSessionBackupDirectory(): String
+
+    /**
+     * List the sizes (in bytes) of all files in the session backup directory.
+     * Platform subclasses implement using native file enumeration.
+     */
+    protected abstract fun listBackupFileSizes(): List<Long>
 
     private data class RoutineNameResolutionContext(
         val routineNameById: Map<String, String>,
@@ -1524,6 +1542,14 @@ abstract class BaseDataBackupManager(
 
     // -- Per-session auto-backup (Phase 36) --
 
+    override suspend fun getBackupStats(): BackupStats = withContext(Dispatchers.IO) {
+        val sizes = listBackupFileSizes()
+        BackupStats(
+            fileCount = sizes.size,
+            totalBytes = sizes.sum()
+        )
+    }
+
     override suspend fun exportSession(sessionId: String): Result<String> = withContext(Dispatchers.IO) {
         try {
             val session = queries.selectSessionById(sessionId).executeAsOneOrNull()
@@ -1546,9 +1572,9 @@ abstract class BaseDataBackupManager(
             val jsonString = json.encodeToString(backupData)
 
             // Build filename: phoenix-workout-{ISO-date}-{sessionId}.json
-            val isoDate = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd")
-            val shortSessionId = sessionId.take(8)
-            val fileName = "phoenix-workout-$isoDate-$shortSessionId.json"
+            // Use the session's start timestamp so the filename reflects when the workout happened
+            val isoDate = KmpUtils.formatTimestamp(session.timestamp, "yyyy-MM-dd")
+            val fileName = "phoenix-workout-$isoDate-$sessionId.json"
 
             val backupDir = getSessionBackupDirectory()
             val filePath = "$backupDir/$fileName"

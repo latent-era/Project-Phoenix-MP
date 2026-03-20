@@ -38,6 +38,44 @@ class AndroidDataBackupManager(
         return dir.absolutePath
     }
 
+    override fun listBackupFileSizes(): List<Long> {
+        val dir = File(getSessionBackupDirectory())
+        return dir.listFiles()
+            ?.filter { it.isFile && it.name.endsWith(".json") }
+            ?.map { it.length() }
+            ?: emptyList()
+    }
+
+    override fun openBackupFolder() {
+        try {
+            val dir = File(getSessionBackupDirectory())
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                dir
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "resource/folder")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Fallback: some devices don't support folder browsing via FileProvider.
+            // Open the system file manager to the general external files area.
+            try {
+                val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                    val storageUri = android.net.Uri.parse("content://com.android.externalstorage.documents/document/primary:Android")
+                    data = storageUri
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(fallbackIntent)
+            } catch (_: Exception) {
+                Logger.w { "Could not open backup folder - no compatible file manager found" }
+            }
+        }
+    }
+
     override fun createBackupWriter(): BackupJsonWriter {
         val timestamp = KmpUtils.formatTimestamp(KmpUtils.currentTimeMillis(), "yyyy-MM-dd")
             .replace("-", "") + "_" +

@@ -2,6 +2,7 @@ package com.devil.phoenixproject.testutil
 
 import com.devil.phoenixproject.util.BackupData
 import com.devil.phoenixproject.util.BackupContent
+import com.devil.phoenixproject.util.BackupStats
 import com.devil.phoenixproject.util.DataBackupManager
 import com.devil.phoenixproject.util.BackupProgress
 import com.devil.phoenixproject.util.ImportResult
@@ -49,4 +50,8 @@ class FakeDataBackupManager : DataBackupManager {
         lastExportedSessionId = sessionId
         return Result.success("/fake/phoenix-workout-2024-01-01-$sessionId.json")
     }
+
+    override suspend fun getBackupStats(): BackupStats = BackupStats(fileCount = 0, totalBytes = 0)
+
+    override fun openBackupFolder() = Unit
 }

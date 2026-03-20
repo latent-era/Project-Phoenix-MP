@@ -445,5 +445,15 @@ class DataBackupManagerRoutineNameTest {
             if (!dir.exists()) dir.mkdirs()
             return dir.absolutePath
         }
+
+        override fun listBackupFileSizes(): List<Long> {
+            val dir = File(getSessionBackupDirectory())
+            return dir.listFiles()
+                ?.filter { it.isFile && it.name.endsWith(".json") }
+                ?.map { it.length() }
+                ?: emptyList()
+        }
+
+        override fun openBackupFolder() = Unit
     }
 }

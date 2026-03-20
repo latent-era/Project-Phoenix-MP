@@ -340,6 +340,30 @@ data class BackupProgress(
 )
 
 /**
+ * Statistics about session auto-backup files on disk.
+ */
+data class BackupStats(
+    val fileCount: Int,
+    val totalBytes: Long
+) {
+    /**
+     * Human-readable total size (e.g. "12.3 MB", "456 KB").
+     */
+    val formattedSize: String
+        get() = when {
+            totalBytes >= 1_000_000 -> {
+                val tenths = (totalBytes * 10 / 1_000_000)
+                "${tenths / 10}.${tenths % 10} MB"
+            }
+            totalBytes >= 1_000 -> {
+                val tenths = (totalBytes * 10 / 1_000)
+                "${tenths / 10}.${tenths % 10} KB"
+            }
+            else -> "$totalBytes B"
+        }
+}
+
+/**
  * Phases of the streaming backup export process
  */
 enum class BackupPhase(val displayName: String) {
