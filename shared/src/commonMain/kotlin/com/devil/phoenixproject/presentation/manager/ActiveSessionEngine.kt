@@ -2683,7 +2683,7 @@ class ActiveSessionEngine(
                         weightPerCableKg = nextSetWeight,
                         reps = nextSetReps ?: 0,
                         programMode = exerciseForNextSet.programMode,
-                        echoLevel = exerciseForNextSet.echoLevel,
+                        echoLevel = exerciseForNextSet.getEchoLevelForSet(nextSetIdx),
                         eccentricLoad = exerciseForNextSet.eccentricLoad,
                         progressionRegressionKg = exerciseForNextSet.progressionKg,
                         selectedExerciseId = exerciseForNextSet.exercise.id,
@@ -2978,7 +2978,7 @@ class ActiveSessionEngine(
             val nextEchoLevel = if (coordinator._userAdjustedWeightDuringRest) {
                 currentParams.echoLevel
             } else {
-                nextExercise.echoLevel
+                nextExercise.getEchoLevelForSet(nextSetIdx)
             }
             val nextEccentricLoad = if (coordinator._userAdjustedWeightDuringRest) {
                 currentParams.eccentricLoad

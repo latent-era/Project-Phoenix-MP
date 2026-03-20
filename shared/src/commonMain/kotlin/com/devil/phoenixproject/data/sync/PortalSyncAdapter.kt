@@ -14,6 +14,7 @@ import com.devil.phoenixproject.domain.model.generateUUID
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
 
 /**
@@ -421,7 +422,14 @@ object PortalSyncAdapter {
                 eccentricLoad = if (ex.programMode == ProgramMode.Echo)
                     ex.eccentricLoad.name else null,
                 echoLevel = if (ex.programMode == ProgramMode.Echo)
-                    ex.echoLevel.name else null
+                    ex.echoLevel.name else null,
+                perSetEchoLevels = ex.setEchoLevels.takeIf { it.isNotEmpty() }
+                    ?.let { levels ->
+                        Json.encodeToString(
+                            ListSerializer(String.serializer().nullable),
+                            levels.map { it?.name }
+                        )
+                    }
             )
         }
 

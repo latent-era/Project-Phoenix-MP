@@ -55,7 +55,9 @@ data class RoutineExercise(
     val eccentricLoad: EccentricLoad = EccentricLoad.LOAD_100,
     val echoLevel: EchoLevel = EchoLevel.HARDER,
     val progressionKg: Float = 0f,
-    val setRestSeconds: List<Int> = emptyList(), // NEW: per-set rest times
+    val setRestSeconds: List<Int> = emptyList(), // per-set rest times
+    // Per-set echo level overrides; null entries fall back to exercise-level echoLevel
+    val setEchoLevels: List<EchoLevel?> = emptyList(),
     // Optional duration in seconds for duration-based sets
     val duration: Int? = null,
     // AMRAP (As Many Reps As Possible) flag - when true, setReps should be null for that set
@@ -86,6 +88,11 @@ data class RoutineExercise(
     // Helper to get rest time for specific set (with fallback to 60s default)
     fun getRestForSet(setIndex: Int): Int {
         return setRestSeconds.getOrNull(setIndex) ?: 60
+    }
+
+    // Helper to get echo level for specific set (with fallback to exercise-level echoLevel)
+    fun getEchoLevelForSet(setIndex: Int): EchoLevel {
+        return setEchoLevels.getOrNull(setIndex) ?: echoLevel
     }
 
     // Helper to ensure rest times array matches number of sets

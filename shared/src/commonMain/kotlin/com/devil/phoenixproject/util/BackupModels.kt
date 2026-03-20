@@ -129,6 +129,7 @@ data class RoutineExerciseBackup(
     val restSeconds: Int = 60,
     val duration: Int? = null,
     val setRestSeconds: String = "[]",
+    val setEchoLevels: String = "",
     val perSetRestTime: Boolean = false,
     val isAMRAP: Boolean = false,
     // KMP extension: superset support (updated field names)

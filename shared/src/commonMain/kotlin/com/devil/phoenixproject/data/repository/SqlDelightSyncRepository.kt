@@ -442,6 +442,17 @@ class SqlDelightSyncRepository(
                         // perSetRest is already JSON array format, use as setRestSeconds
                         val setRestSeconds = exercise.perSetRest ?: "[]"
 
+                        // Convert perSetEchoLevels from portal names to ordinal JSON
+                        val setEchoLevels = exercise.perSetEchoLevels?.let { jsonStr ->
+                            try {
+                                val names = Json.decodeFromString<List<String?>>(jsonStr)
+                                val ordinals = names.map { name ->
+                                    name?.let { PortalPullAdapter.parseEchoLevel(it).toInt() }
+                                }
+                                Json.encodeToString(ordinals)
+                            } catch (_: Exception) { "" }
+                        } ?: ""
+
                         val mobileMode = PortalPullAdapter.portalModeToMobileMode(exercise.mode)
 
                         queries.insertRoutineExercise(
@@ -474,7 +485,8 @@ class SqlDelightSyncRepository(
                             setWeightsPercentOfPR = null,
                             stallDetectionEnabled = if (exercise.stallDetection) 1L else 0L,
                             stopAtTop = if (exercise.stopAtPosition == "TOP") 1L else 0L,
-                            repCountTiming = exercise.repCountTiming ?: "TOP"
+                            repCountTiming = exercise.repCountTiming ?: "TOP",
+                            setEchoLevels = setEchoLevels
                         )
                     }
                 }
@@ -585,6 +597,13 @@ class SqlDelightSyncRepository(
                             json.decodeFromString<List<Int>>(exRow.setRestSeconds)
                         } catch (_: Exception) { emptyList() }
 
+                        val setEchoLevels: List<EchoLevel?> = try {
+                            if (exRow.setEchoLevels.isBlank()) emptyList()
+                            else json.decodeFromString<List<Int?>>(exRow.setEchoLevels).map { ordinal ->
+                                ordinal?.let { EchoLevel.entries.getOrNull(it) }
+                            }
+                        } catch (_: Exception) { emptyList() }
+
                         val eccentricLoad = mapEccentricLoadFromDb(exRow.eccentricLoad)
                         val echoLevel = EchoLevel.entries.getOrNull(exRow.echoLevel.toInt()) ?: EchoLevel.HARDER
                         val programMode = parseProgramMode(exRow.mode)
@@ -610,6 +629,7 @@ class SqlDelightSyncRepository(
                             echoLevel = echoLevel,
                             progressionKg = exRow.progressionKg.toFloat(),
                             setRestSeconds = setRestSeconds,
+                            setEchoLevels = setEchoLevels,
                             duration = exRow.duration?.toInt(),
                             isAMRAP = exRow.isAMRAP == 1L,
                             perSetRestTime = exRow.perSetRestTime == 1L,

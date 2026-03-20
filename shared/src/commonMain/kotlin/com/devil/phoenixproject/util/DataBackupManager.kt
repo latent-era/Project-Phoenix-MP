@@ -220,6 +220,7 @@ abstract class BaseDataBackupManager(
                         restSeconds = exercise.restSeconds.toInt(),
                         duration = exercise.duration?.toInt(),
                         setRestSeconds = exercise.setRestSeconds,
+                        setEchoLevels = exercise.setEchoLevels,
                         perSetRestTime = exercise.perSetRestTime != 0L,
                         isAMRAP = exercise.isAMRAP != 0L,
                         supersetId = exercise.supersetId,
@@ -586,7 +587,8 @@ abstract class BaseDataBackupManager(
                             setWeightsPercentOfPR = exercise.setWeightsPercentOfPR,
                             stallDetectionEnabled = if (exercise.stallDetectionEnabled) 1L else 0L,
                             stopAtTop = if (exercise.stopAtTop) 1L else 0L,
-                            repCountTiming = exercise.repCountTiming
+                            repCountTiming = exercise.repCountTiming,
+                            setEchoLevels = exercise.setEchoLevels
                         )
                         routineExercisesImported++
                     }
@@ -1345,6 +1347,7 @@ abstract class BaseDataBackupManager(
             restSeconds = exercise.restSeconds.toInt(),
             duration = exercise.duration?.toInt(),
             setRestSeconds = exercise.setRestSeconds,
+            setEchoLevels = exercise.setEchoLevels,
             perSetRestTime = exercise.perSetRestTime != 0L,
             isAMRAP = exercise.isAMRAP != 0L,
             supersetId = exercise.supersetId,

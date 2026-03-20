@@ -239,6 +239,16 @@ class SqlDelightWorkoutRepository(
                     emptyList()
                 }
 
+                val setEchoLevels: List<EchoLevel?> = try {
+                    if (row.setEchoLevels.isBlank()) emptyList()
+                    else json.decodeFromString<List<Int?>>(row.setEchoLevels).map { ordinal ->
+                        ordinal?.let { EchoLevel.values().getOrNull(it) }
+                    }
+                } catch (e: Exception) {
+                    Logger.w(e) { "Failed to parse setEchoLevels '${row.setEchoLevels}' for exercise ${row.exerciseName}, using empty list" }
+                    emptyList()
+                }
+
                 val eccentricLoad = mapEccentricLoadFromDb(row.eccentricLoad)
                 val echoLevel = EchoLevel.values().getOrNull(row.echoLevel.toInt()) ?: EchoLevel.HARDER
 
@@ -272,6 +282,7 @@ class SqlDelightWorkoutRepository(
                     echoLevel = echoLevel,
                     progressionKg = row.progressionKg.toFloat(),
                     setRestSeconds = setRestSeconds,
+                    setEchoLevels = setEchoLevels,
                     duration = row.duration?.toInt(),
                     isAMRAP = row.isAMRAP == 1L,
                     perSetRestTime = row.perSetRestTime == 1L,
@@ -537,7 +548,10 @@ class SqlDelightWorkoutRepository(
             // Per-exercise behavior overrides
             stallDetectionEnabled = if (exercise.stallDetectionEnabled) 1L else 0L,
             stopAtTop = if (exercise.stopAtTop) 1L else 0L,
-            repCountTiming = exercise.repCountTiming.name
+            repCountTiming = exercise.repCountTiming.name,
+            // Per-set echo levels (stored as JSON array of nullable ordinals)
+            setEchoLevels = if (exercise.setEchoLevels.isEmpty()) ""
+                else json.encodeToString(exercise.setEchoLevels.map { it?.ordinal })
         )
     }
 
