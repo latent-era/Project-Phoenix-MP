@@ -41,11 +41,12 @@ class AndroidCsvImporter(
                     )
                 }
 
-                // Pre-load existing sessions for duplicate detection (one DB round-trip)
+                // Pre-load existing sessions for duplicate detection (one DB round-trip).
+                // MutableSet so intra-file duplicates are also caught as they are imported.
                 val existingSessions = workoutRepository.getRecentSessionsSync(limit = Int.MAX_VALUE)
                 val existingKeys = existingSessions.map { s ->
                     DuplicateKey(s.timestamp, s.exerciseName ?: s.exerciseId ?: "")
-                }.toSet()
+                }.toMutableSet()
 
                 var imported = 0
                 var skipped = 0
@@ -59,6 +60,7 @@ class AndroidCsvImporter(
                     }
                     try {
                         workoutRepository.saveSession(session)
+                        existingKeys.add(key) // Track intra-file duplicates
                         imported++
                     } catch (e: Exception) {
                         Logger.w("CsvImporter") { "Failed to save row: ${e.message}" }
