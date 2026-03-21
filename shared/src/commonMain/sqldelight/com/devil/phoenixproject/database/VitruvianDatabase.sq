@@ -1107,7 +1107,7 @@ countUniqueExercises:
 SELECT COUNT(DISTINCT exerciseId) FROM WorkoutSession WHERE exerciseId IS NOT NULL;
 
 countPersonalRecords:
-SELECT COUNT(*) FROM PersonalRecord WHERE profile_id = :profileId;
+SELECT COUNT(*) FROM PersonalRecord;
 
 selectWorkoutDates:
 SELECT DISTINCT DATE(timestamp / 1000, 'unixepoch') AS workoutDate FROM WorkoutSession ORDER BY timestamp DESC;
