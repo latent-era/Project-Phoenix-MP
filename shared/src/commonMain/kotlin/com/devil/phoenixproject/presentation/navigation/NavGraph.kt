@@ -295,8 +295,6 @@ fun NavGraph(
             val connectionError by viewModel.connectionError.collectAsState()
             val connectionState by viewModel.connectionState.collectAsState()
             val discoModeActive by viewModel.discoModeActive.collectAsState()
-            val simulatorModeUnlocked by viewModel.simulatorModeUnlocked.collectAsState()
-            val simulatorModeEnabled by viewModel.simulatorModeEnabled.collectAsState()
             val backupStats by viewModel.backupStats.collectAsState()
             // Refresh backup stats when Settings screen is displayed
             androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refreshBackupStats() }
@@ -347,11 +345,6 @@ fun NavGraph(
                 // Gamification toggle
                 gamificationEnabled = userPreferences.gamificationEnabled,
                 onGamificationEnabledChange = { viewModel.setGamificationEnabled(it) },
-                // Simulator mode Easter egg
-                simulatorModeUnlocked = simulatorModeUnlocked,
-                simulatorModeEnabled = simulatorModeEnabled,
-                onSimulatorModeUnlocked = { viewModel.unlockSimulatorMode() },
-                onSimulatorModeToggle = { viewModel.toggleSimulatorMode(it) },
                 // Auto-backup (Phase 36)
                 autoBackupEnabled = userPreferences.autoBackupEnabled,
                 onAutoBackupEnabledChange = { viewModel.setAutoBackupEnabled(it) },

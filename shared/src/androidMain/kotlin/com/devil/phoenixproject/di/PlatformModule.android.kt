@@ -2,10 +2,8 @@ package com.devil.phoenixproject.di
 
 import android.content.Context
 import com.devil.phoenixproject.data.local.DriverFactory
-import com.devil.phoenixproject.data.preferences.PreferencesManager
 import com.devil.phoenixproject.data.repository.BleRepository
 import com.devil.phoenixproject.data.repository.KableBleRepository
-import com.devil.phoenixproject.data.repository.simulator.SimulatorBleRepository
 import com.devil.phoenixproject.util.AndroidCsvExporter
 import com.devil.phoenixproject.util.AndroidCsvImporter
 import com.devil.phoenixproject.util.AndroidDataBackupManager
@@ -27,15 +25,7 @@ actual val platformModule: Module = module {
         val preferences = androidContext().getSharedPreferences("vitruvian_preferences", Context.MODE_PRIVATE)
         SharedPreferencesSettings(preferences)
     }
-    // Conditional BleRepository - use simulator when unlocked in preferences
-    factory<BleRepository> {
-        val prefs: PreferencesManager = get()
-        if (prefs.isSimulatorModeUnlocked()) {
-            SimulatorBleRepository()
-        } else {
-            KableBleRepository()
-        }
-    }
+    factory<BleRepository> { KableBleRepository() }
     single<CsvExporter> { AndroidCsvExporter(androidContext()) }
     single<CsvImporter> { AndroidCsvImporter(androidContext(), get()) }
     single<DataBackupManager> { AndroidDataBackupManager(androidContext(), get()) }

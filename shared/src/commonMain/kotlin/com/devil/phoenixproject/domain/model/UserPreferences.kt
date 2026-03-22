@@ -21,8 +21,6 @@ data class UserPreferences(
     val summaryCountdownSeconds: Int = 10,  // -1 = Off (skip summary), 0 = Unlimited (no auto-advance), 5-30 = auto-advance
     val autoStartCountdownSeconds: Int = 5,  // 2-10 in 1s intervals, default 5
     val gamificationEnabled: Boolean = true,  // Show PR celebrations, award badges, play celebration sounds
-    val simulatorModeUnlocked: Boolean = false,  // Easter egg - unlocked via settings tap
-    val simulatorModeEnabled: Boolean = false,  // Active simulator mode toggle
     // Issue #266: Configurable weight increment (in user's selected unit)
     val weightIncrement: Float = -1f,  // -1 = use default for unit (0.5kg / 1.0lb)
     // Issue #190: Skip RoutineOverviewScreen and jump straight to SetReady for exercise 0

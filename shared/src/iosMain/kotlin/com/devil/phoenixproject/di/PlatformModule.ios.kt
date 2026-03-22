@@ -1,10 +1,8 @@
 package com.devil.phoenixproject.di
 
 import com.devil.phoenixproject.data.local.DriverFactory
-import com.devil.phoenixproject.data.preferences.PreferencesManager
 import com.devil.phoenixproject.data.repository.BleRepository
 import com.devil.phoenixproject.data.repository.KableBleRepository
-import com.devil.phoenixproject.data.repository.simulator.SimulatorBleRepository
 import com.devil.phoenixproject.data.sync.SupabaseConfig
 import com.devil.phoenixproject.domain.voice.IosSafeWordListenerFactory
 import com.devil.phoenixproject.domain.voice.SafeWordListenerFactory
@@ -35,15 +33,7 @@ actual val platformModule: Module = module {
         val defaults = NSUserDefaults.standardUserDefaults
         NSUserDefaultsSettings(defaults)
     }
-    // Conditional BleRepository - use simulator when unlocked in preferences
-    factory<BleRepository> {
-        val prefs: PreferencesManager = get()
-        if (prefs.isSimulatorModeUnlocked()) {
-            SimulatorBleRepository()
-        } else {
-            KableBleRepository()
-        }
-    }
+    factory<BleRepository> { KableBleRepository() }
     single<CsvExporter> { IosCsvExporter() }
     single<CsvImporter> { IosCsvImporter(get()) }
     single<DataBackupManager> { IosDataBackupManager(get()) }

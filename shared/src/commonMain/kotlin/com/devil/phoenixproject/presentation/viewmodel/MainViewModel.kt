@@ -465,20 +465,6 @@ class MainViewModel constructor(
         }
     }
 
-    // ===== Simulator Mode (Easter Egg - stays here) =====
-
-    val simulatorModeUnlocked: StateFlow<Boolean> get() = settingsManager.simulatorModeUnlocked
-    val simulatorModeEnabled: StateFlow<Boolean> get() = settingsManager.simulatorModeEnabled
-
-    fun unlockSimulatorMode() {
-        settingsManager.setSimulatorModeUnlocked(true)
-        Logger.i { "SIMULATOR MODE UNLOCKED!" }
-    }
-
-    fun toggleSimulatorMode(enabled: Boolean) {
-        settingsManager.setSimulatorModeEnabled(enabled)
-    }
-
     // ===== Cleanup =====
 
     override fun onCleared() {

@@ -92,11 +92,6 @@ fun SettingsTab(
     // Gamification toggle
     gamificationEnabled: Boolean = true,
     onGamificationEnabledChange: (Boolean) -> Unit = {},
-    // Simulator mode Easter egg
-    simulatorModeUnlocked: Boolean = false,
-    simulatorModeEnabled: Boolean = false,
-    onSimulatorModeUnlocked: () -> Unit = {},
-    onSimulatorModeToggle: (Boolean) -> Unit = {},
     // Auto-backup (Phase 36)
     autoBackupEnabled: Boolean = false,
     onAutoBackupEnabledChange: (Boolean) -> Unit = {},
@@ -132,11 +127,9 @@ fun SettingsTab(
     var lastTapTime by remember { mutableStateOf(0L) }
     // Disco mode unlock celebration dialog
     var showDiscoUnlockDialog by remember { mutableStateOf(false) }
-    // Simulator mode unlock celebration dialog
-    var showSimulatorUnlockDialog by remember { mutableStateOf(false) }
-    // Separate easter egg tap counter for simulator mode
-    var simulatorEasterEggTapCount by remember { mutableStateOf(0) }
-    var simulatorLastTapTime by remember { mutableStateOf(0L) }
+    // Voice emergency stop state (moved from VoiceEmergencyStopSection for consolidation)
+    var showCalibrationDialog by remember { mutableStateOf(false) }
+    var localSafeWord by remember(safeWord) { mutableStateOf(safeWord ?: "") }
     // Optimistic UI state for immediate visual feedback
     var localWeightUnit by remember(weightUnit) { mutableStateOf(weightUnit) }
 
@@ -161,7 +154,70 @@ fun SettingsTab(
     ) {
         // Header removed for global scaffold integration
 
-        // Cloud Sync Section - Material 3 Expressive (moved to top for discoverability)
+        // Donation Card - Material 3 Expressive (top of settings for visibility)
+        val uriHandler = LocalUriHandler.current
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(8.dp, RoundedCornerShape(20.dp)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.medium)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .shadow(8.dp, RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Color(0xFFFFD700), Color(0xFFFFA500))
+                                ),
+                                RoundedCornerShape(20.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Favorite,
+                            contentDescription = stringResource(Res.string.cd_support_developer),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(Spacing.medium))
+                    Text(
+                        "Like My Work?",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(modifier = Modifier.height(Spacing.small))
+                Text(
+                    "This app is 100% free with no ads, but I graciously accept donations if you are so inclined!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(Spacing.small))
+                Text(
+                    "ko-fi.com/vitruvianredux",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable {
+                        uriHandler.openUri("https://ko-fi.com/vitruvianredux")
+                    }
+                )
+            }
+        }
+
+        // Cloud Sync Section - Material 3 Expressive
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -257,69 +313,6 @@ fun SettingsTab(
                         )
                     }
                 }
-            }
-        }
-
-        // Donation Card - Material 3 Expressive
-        val uriHandler = LocalUriHandler.current
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(8.dp, RoundedCornerShape(20.dp)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.medium)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .shadow(8.dp, RoundedCornerShape(20.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(Color(0xFFFFD700), Color(0xFFFFA500))
-                                ),
-                                RoundedCornerShape(20.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Favorite,
-                            contentDescription = stringResource(Res.string.cd_support_developer),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(Spacing.medium))
-                    Text(
-                        "Like My Work?",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Spacer(modifier = Modifier.height(Spacing.small))
-                Text(
-                    "This app is 100% free with no ads, but I graciously accept donations if you are so inclined!",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(Spacing.small))
-                Text(
-                    "ko-fi.com/vitruvianredux",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable {
-                        uriHandler.openUri("https://ko-fi.com/vitruvianredux")
-                    }
-                )
             }
         }
 
@@ -538,7 +531,7 @@ fun SettingsTab(
             }
             Spacer(modifier = Modifier.height(Spacing.small))
 
-            // Language selection chips
+            // Language selection dropdown
             val languageOptions = listOf(
                 "en" to stringResource(Res.string.language_english),
                 "nl" to stringResource(Res.string.language_dutch),
@@ -546,21 +539,45 @@ fun SettingsTab(
                 "es" to stringResource(Res.string.language_spanish),
                 "fr" to stringResource(Res.string.language_french)
             )
-            languageOptions.forEach { (code, label) ->
-                FilterChip(
-                    selected = selectedLanguage == code,
-                    onClick = { onLanguageChange(code) },
-                    label = { Text(label) },
+            val selectedLabel = languageOptions.firstOrNull { it.first == selectedLanguage }?.second
+                ?: languageOptions.first().second
+            var languageExpanded by remember { mutableStateOf(false) }
+
+            @OptIn(ExperimentalMaterial3Api::class)
+            ExposedDropdownMenuBox(
+                expanded = languageExpanded,
+                onExpandedChange = { languageExpanded = !languageExpanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = languageExpanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        labelColor = MaterialTheme.colorScheme.onSurface
-                    )
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
+                ExposedDropdownMenu(
+                    expanded = languageExpanded,
+                    onDismissRequest = { languageExpanded = false }
+                ) {
+                    languageOptions.forEach { (code, label) ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            },
+                            onClick = {
+                                onLanguageChange(code)
+                                languageExpanded = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -869,8 +886,121 @@ fun SettingsTab(
                         onCheckedChange = onGamificationEnabledChange
                     )
                 }
+
+                // Voice Emergency Stop - consolidated from standalone section
+                Spacer(modifier = Modifier.height(Spacing.small))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(Spacing.medium))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            stringResource(Res.string.settings_voice_stop_title),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            stringResource(Res.string.settings_voice_stop_description),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = voiceStopEnabled,
+                        onCheckedChange = onVoiceStopEnabledChange
+                    )
+                }
+
+                // Safe word configuration (shown when voice stop is enabled)
+                if (voiceStopEnabled) {
+                    Spacer(modifier = Modifier.height(Spacing.medium))
+
+                    OutlinedTextField(
+                        value = localSafeWord,
+                        onValueChange = { newValue ->
+                            localSafeWord = newValue.uppercase().trim()
+                        },
+                        label = { Text(stringResource(Res.string.settings_safe_word_label)) },
+                        placeholder = { Text(stringResource(Res.string.settings_safe_word_hint)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(Spacing.small))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        if (safeWordCalibrated && safeWord == localSafeWord) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = stringResource(Res.string.cd_calibration_check),
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    stringResource(Res.string.settings_calibrated_badge),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF10B981),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else {
+                            Text(
+                                stringResource(Res.string.settings_calibrate_first),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(Spacing.small))
+
+                        Button(
+                            onClick = {
+                                if (localSafeWord.isNotBlank()) {
+                                    onSafeWordCalibratedChange(false)
+                                    onSafeWordChange(localSafeWord)
+                                    showCalibrationDialog = true
+                                }
+                            },
+                            enabled = localSafeWord.isNotBlank(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(stringResource(Res.string.settings_calibrate_button))
+                        }
+                    }
+                }
             }
         }
+
+    // Calibration dialog for voice emergency stop
+    if (showCalibrationDialog && localSafeWord.isNotBlank()) {
+        SafeWordCalibrationDialog(
+            safeWord = localSafeWord,
+            onCalibrated = {
+                onSafeWordChange(localSafeWord)
+                onSafeWordCalibratedChange(true)
+                showCalibrationDialog = false
+            },
+            onDismiss = {
+                showCalibrationDialog = false
+            }
+        )
+    }
 
     // Color Scheme Section - Compact with visual previews
     Card(
@@ -1418,16 +1548,6 @@ fun SettingsTab(
             }
         }
 
-    // Voice Emergency Stop Section - Issue #141
-    VoiceEmergencyStopSection(
-        voiceStopEnabled = voiceStopEnabled,
-        onVoiceStopEnabledChange = onVoiceStopEnabledChange,
-        safeWord = safeWord,
-        onSafeWordChange = onSafeWordChange,
-        safeWordCalibrated = safeWordCalibrated,
-        onSafeWordCalibratedChange = onSafeWordCalibratedChange
-    )
-
     // Achievements Section - Material 3 Expressive (hidden when gamification is disabled)
     if (gamificationEnabled) {
     Card(
@@ -1523,54 +1643,30 @@ fun SettingsTab(
                     .fillMaxWidth()
                     .padding(Spacing.medium)
             ) {
-            // Easter egg: tap the header 7 times rapidly to unlock simulator mode
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable {
-                    val currentTime = KmpUtils.currentTimeMillis()
-                    // Reset if more than 2 seconds since last tap
-                    if (currentTime - simulatorLastTapTime > 2000L) {
-                        simulatorEasterEggTapCount = 1
-                    } else {
-                        simulatorEasterEggTapCount++
-                    }
-                    simulatorLastTapTime = currentTime
-
-                    // Unlock simulator mode after 7 rapid taps
-                    if (simulatorEasterEggTapCount >= 7 && !simulatorModeUnlocked) {
-                        showSimulatorUnlockDialog = true
-                        onSimulatorModeUnlocked()
-                        simulatorEasterEggTapCount = 0
-                    }
-                }
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp) // Material 3 Expressive: Larger (was 40dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp)) // Material 3 Expressive: More shadow, more rounded (was 16dp)
+                        .size(48.dp)
+                        .shadow(8.dp, RoundedCornerShape(20.dp))
                         .background(
                             Brush.linearGradient(
-                                colors = if (simulatorModeUnlocked) {
-                                    listOf(Color(0xFF9333EA), Color(0xFF4F46E5)) // Purple gradient when unlocked
-                                } else {
-                                    listOf(Color(0xFFF59E0B), Color(0xFFEF4444))
-                                }
+                                colors = listOf(Color(0xFFF59E0B), Color(0xFFEF4444))
                             ),
-                            RoundedCornerShape(20.dp) // Material 3 Expressive: More rounded (was 16dp)
+                            RoundedCornerShape(20.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        if (simulatorModeUnlocked) Icons.Default.Code else Icons.Default.BugReport,
+                        Icons.Default.BugReport,
                         contentDescription = stringResource(Res.string.cd_developer_tools),
                         tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp) // Material 3 Expressive: Larger icon
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
                     "Developer Tools",
-                    style = MaterialTheme.typography.titleLarge, // Material 3 Expressive: Larger (was titleMedium)
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -1640,54 +1736,6 @@ fun SettingsTab(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                // Simulator mode toggle (only visible when unlocked)
-                if (simulatorModeUnlocked) {
-                    Spacer(modifier = Modifier.height(Spacing.medium))
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = Spacing.small),
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "🔧",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.small))
-                            Column {
-                                Text(
-                                    "BLE Simulator",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    "Use virtual machine for testing",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = simulatorModeEnabled,
-                            onCheckedChange = { onSimulatorModeToggle(it) }
-                        )
-                    }
-
-                    // Info text about restart
-                    Spacer(modifier = Modifier.height(Spacing.small))
-                    Text(
-                        if (simulatorModeEnabled) "Restart the app to connect to the virtual machine"
-                        else "Enable to use simulated BLE device instead of real hardware",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (simulatorModeEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
 
             }
         }
@@ -1812,42 +1860,6 @@ fun SettingsTab(
     if (showDiscoUnlockDialog) {
         DiscoModeUnlockDialog(
             onDismiss = { showDiscoUnlockDialog = false }
-        )
-    }
-
-    // Simulator Mode Unlock Dialog
-    if (showSimulatorUnlockDialog) {
-        AlertDialog(
-            onDismissRequest = { showSimulatorUnlockDialog = false },
-            title = {
-                Text(
-                    "🔧 Developer Tools Unlocked!",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    "You've unlocked BLE Simulator mode!\n\nEnable it in Developer Tools, then restart the app to connect to a virtual machine instead of real hardware.",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            shape = RoundedCornerShape(28.dp),
-            confirmButton = {
-                TextButton(
-                    onClick = { showSimulatorUnlockDialog = false },
-                    modifier = Modifier.height(56.dp),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        "Got it!",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
         )
     }
 
@@ -2065,187 +2077,6 @@ fun SettingsTab(
                 }
             }
         }
-    }
-}
-
-/**
- * Voice Emergency Stop settings section with calibration flow.
- * Issue #141: Safe word detection during workouts.
- */
-@Composable
-private fun VoiceEmergencyStopSection(
-    voiceStopEnabled: Boolean,
-    onVoiceStopEnabledChange: (Boolean) -> Unit,
-    safeWord: String?,
-    onSafeWordChange: (String?) -> Unit,
-    safeWordCalibrated: Boolean,
-    onSafeWordCalibratedChange: (Boolean) -> Unit
-) {
-    var showCalibrationDialog by remember { mutableStateOf(false) }
-    var localSafeWord by remember(safeWord) { mutableStateOf(safeWord ?: "") }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.medium)
-        ) {
-            // Section header
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFFEF4444), Color(0xFFDC2626))
-                            ),
-                            RoundedCornerShape(20.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Mic,
-                        contentDescription = stringResource(Res.string.cd_voice_stop),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(Spacing.medium))
-                Column {
-                    Text(
-                        stringResource(Res.string.settings_voice_stop_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        stringResource(Res.string.settings_voice_stop_mic_required),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(Spacing.small))
-
-            Text(
-                stringResource(Res.string.settings_voice_stop_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.medium))
-
-            // Enable toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    stringResource(Res.string.settings_voice_stop_enable),
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Switch(
-                    checked = voiceStopEnabled,
-                    onCheckedChange = onVoiceStopEnabledChange
-                )
-            }
-
-            // Show safe word configuration when enabled
-            if (voiceStopEnabled) {
-                Spacer(modifier = Modifier.height(Spacing.medium))
-
-                // Safe word text field
-                OutlinedTextField(
-                    value = localSafeWord,
-                    onValueChange = { newValue ->
-                        localSafeWord = newValue.uppercase().trim()
-                    },
-                    label = { Text(stringResource(Res.string.settings_safe_word_label)) },
-                    placeholder = { Text(stringResource(Res.string.settings_safe_word_hint)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.small))
-
-                // Calibration status + button row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    if (safeWordCalibrated && safeWord == localSafeWord) {
-                        // Show calibrated badge
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = stringResource(Res.string.cd_calibration_check),
-                                tint = Color(0xFF10B981),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                stringResource(Res.string.settings_calibrated_badge),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF10B981),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    } else {
-                        // Show "calibrate first" message
-                        Text(
-                            stringResource(Res.string.settings_calibrate_first),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(Spacing.small))
-
-                    Button(
-                        onClick = {
-                            // Save the word and reset calibration before starting
-                            if (localSafeWord.isNotBlank()) {
-                                onSafeWordCalibratedChange(false)
-                                onSafeWordChange(localSafeWord)
-                                showCalibrationDialog = true
-                            }
-                        },
-                        enabled = localSafeWord.isNotBlank(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(Res.string.settings_calibrate_button))
-                    }
-                }
-            }
-        }
-    }
-
-    // Calibration dialog
-    if (showCalibrationDialog && localSafeWord.isNotBlank()) {
-        SafeWordCalibrationDialog(
-            safeWord = localSafeWord,
-            onCalibrated = {
-                onSafeWordChange(localSafeWord)
-                onSafeWordCalibratedChange(true)
-                showCalibrationDialog = false
-            },
-            onDismiss = {
-                showCalibrationDialog = false
-            }
-        )
     }
 }
 

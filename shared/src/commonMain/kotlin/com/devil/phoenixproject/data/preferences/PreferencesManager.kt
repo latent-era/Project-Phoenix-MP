@@ -115,11 +115,6 @@ interface PreferencesManager {
     suspend fun setSummaryCountdownSeconds(seconds: Int)
     suspend fun setAutoStartCountdownSeconds(seconds: Int)
     suspend fun setGamificationEnabled(enabled: Boolean)
-    suspend fun setSimulatorModeUnlocked(unlocked: Boolean)
-    fun isSimulatorModeUnlocked(): Boolean
-    suspend fun setSimulatorModeEnabled(enabled: Boolean)
-    fun isSimulatorModeEnabled(): Boolean
-
     // Issue #266: Configurable weight increment
     suspend fun setWeightIncrement(increment: Float)
     // Issue #190: Auto-start routine
@@ -183,8 +178,6 @@ class SettingsPreferencesManager(
         private const val KEY_REP_COUNT_TIMING = "rep_count_timing"
         private const val KEY_JUST_LIFT_DEFAULTS = "just_lift_defaults"
         private const val KEY_PREFIX_EXERCISE = "exercise_defaults_"
-        private const val KEY_SIMULATOR_MODE_UNLOCKED = "simulator_mode_unlocked"
-        private const val KEY_SIMULATOR_MODE_ENABLED = "simulator_mode_enabled"
         private const val KEY_GAMIFICATION_ENABLED = "gamification_enabled"
         private const val KEY_WEIGHT_INCREMENT = "weight_increment"
         private const val KEY_AUTO_START_ROUTINE = "auto_start_routine"
@@ -226,8 +219,6 @@ class SettingsPreferencesManager(
             summaryCountdownSeconds = settings.getInt(KEY_SUMMARY_COUNTDOWN_SECONDS, 10),
             autoStartCountdownSeconds = settings.getInt(KEY_AUTOSTART_COUNTDOWN_SECONDS, 5),
             gamificationEnabled = settings.getBoolean(KEY_GAMIFICATION_ENABLED, true),
-            simulatorModeUnlocked = settings.getBoolean(KEY_SIMULATOR_MODE_UNLOCKED, false),
-            simulatorModeEnabled = settings.getBoolean(KEY_SIMULATOR_MODE_ENABLED, false),
             weightIncrement = settings.getFloat(KEY_WEIGHT_INCREMENT, -1f),
             autoStartRoutine = settings.getBoolean(KEY_AUTO_START_ROUTINE, false),
             bodyWeightKg = settings.getFloat(KEY_BODY_WEIGHT_KG, 0f),
@@ -374,24 +365,6 @@ class SettingsPreferencesManager(
     override suspend fun setGamificationEnabled(enabled: Boolean) {
         settings.putBoolean(KEY_GAMIFICATION_ENABLED, enabled)
         updateAndEmit { copy(gamificationEnabled = enabled) }
-    }
-
-    override suspend fun setSimulatorModeUnlocked(unlocked: Boolean) {
-        settings.putBoolean(KEY_SIMULATOR_MODE_UNLOCKED, unlocked)
-        updateAndEmit { copy(simulatorModeUnlocked = unlocked) }
-    }
-
-    override fun isSimulatorModeUnlocked(): Boolean {
-        return settings.getBoolean(KEY_SIMULATOR_MODE_UNLOCKED, false)
-    }
-
-    override suspend fun setSimulatorModeEnabled(enabled: Boolean) {
-        settings.putBoolean(KEY_SIMULATOR_MODE_ENABLED, enabled)
-        updateAndEmit { copy(simulatorModeEnabled = enabled) }
-    }
-
-    override fun isSimulatorModeEnabled(): Boolean {
-        return settings.getBoolean(KEY_SIMULATOR_MODE_ENABLED, false)
     }
 
     override suspend fun setWeightIncrement(increment: Float) {

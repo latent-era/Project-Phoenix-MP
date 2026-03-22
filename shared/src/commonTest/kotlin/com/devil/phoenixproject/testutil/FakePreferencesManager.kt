@@ -111,22 +111,6 @@ class FakePreferencesManager : PreferencesManager {
         _preferencesFlow.value = _preferencesFlow.value.copy(gamificationEnabled = enabled)
     }
 
-    override suspend fun setSimulatorModeUnlocked(unlocked: Boolean) {
-        _preferencesFlow.value = _preferencesFlow.value.copy(simulatorModeUnlocked = unlocked)
-    }
-
-    override fun isSimulatorModeUnlocked(): Boolean {
-        return _preferencesFlow.value.simulatorModeUnlocked
-    }
-
-    override suspend fun setSimulatorModeEnabled(enabled: Boolean) {
-        _preferencesFlow.value = _preferencesFlow.value.copy(simulatorModeEnabled = enabled)
-    }
-
-    override fun isSimulatorModeEnabled(): Boolean {
-        return _preferencesFlow.value.simulatorModeEnabled
-    }
-
     override suspend fun setWeightIncrement(increment: Float) {
         _preferencesFlow.value = _preferencesFlow.value.copy(weightIncrement = increment)
     }
