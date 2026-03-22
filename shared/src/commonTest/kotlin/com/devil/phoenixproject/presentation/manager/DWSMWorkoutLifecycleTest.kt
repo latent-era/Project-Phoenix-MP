@@ -944,8 +944,7 @@ class DWSMWorkoutLifecycleTest {
             totalReps = 10,
             isWarmupComplete = true
         )
-        harness.dwsm.coordinator.collectedMetrics.addAll(
-            listOf(
+        harness.dwsm.coordinator.collectedMetrics.value = listOf(
                 WorkoutMetric(
                     timestamp = 100L,
                     loadA = 60f,
@@ -964,7 +963,6 @@ class DWSMWorkoutLifecycleTest {
                     velocityA = -60.0,
                     velocityB = -60.0
                 )
-            )
         )
 
         harness.activeSessionEngine.handleSetCompletion()
