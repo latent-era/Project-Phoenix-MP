@@ -50,11 +50,11 @@ class FakeTrainingCycleRepository : TrainingCycleRepository {
 
     // ========== TrainingCycleRepository interface implementation ==========
 
-    override fun getAllCycles(): Flow<List<TrainingCycle>> = _cyclesFlow
+    override fun getAllCycles(profileId: String): Flow<List<TrainingCycle>> = _cyclesFlow
 
     override suspend fun getCycleById(cycleId: String): TrainingCycle? = cycles[cycleId]
 
-    override fun getActiveCycle(): Flow<TrainingCycle?> = _activeCycleFlow
+    override fun getActiveCycle(profileId: String): Flow<TrainingCycle?> = _activeCycleFlow
 
     override suspend fun getCycleWithProgress(cycleId: String): Pair<TrainingCycle, CycleProgress?>? {
         val cycle = cycles[cycleId] ?: return null
@@ -73,7 +73,7 @@ class FakeTrainingCycleRepository : TrainingCycleRepository {
         updateFlows()
     }
 
-    override suspend fun setActiveCycle(cycleId: String) {
+    override suspend fun setActiveCycle(cycleId: String, profileId: String) {
         activeCycleId = cycleId
         // Reset progress on activation so deactivate/reactivate starts fresh
         if (cycleProgress.containsKey(cycleId)) {
@@ -233,7 +233,7 @@ class FakeTrainingCycleRepository : TrainingCycleRepository {
         }
     }
 
-    override suspend fun clearActiveCycle() {
+    override suspend fun clearActiveCycle(profileId: String) {
         activeCycleId = null
         updateFlows()
     }
