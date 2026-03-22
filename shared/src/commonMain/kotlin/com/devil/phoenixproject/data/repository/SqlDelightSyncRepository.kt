@@ -398,7 +398,7 @@ class SqlDelightSyncRepository(
 
     // === Portal Pull Operations (merge portal data) ===
 
-    override suspend fun mergePortalRoutines(routines: List<PullRoutineDto>, lastSync: Long) {
+    override suspend fun mergePortalRoutines(routines: List<PullRoutineDto>, lastSync: Long, profileId: String) {
         withContext(Dispatchers.IO) {
             db.transaction {
                 for (portalRoutine in routines) {
@@ -422,7 +422,7 @@ class SqlDelightSyncRepository(
                         createdAt = existing?.createdAt ?: currentTimeMillis(),
                         lastUsed = existing?.lastUsed,
                         useCount = existing?.useCount ?: 0L,
-                        profile_id = "default"
+                        profile_id = existing?.profile_id ?: profileId
                     )
 
                     // Replace routine exercises and supersets: delete existing then insert portal versions
@@ -526,7 +526,7 @@ class SqlDelightSyncRepository(
         }
     }
 
-    override suspend fun mergePortalCycles(cycles: List<PullTrainingCycleDto>) {
+    override suspend fun mergePortalCycles(cycles: List<PullTrainingCycleDto>, profileId: String) {
         withContext(Dispatchers.IO) {
             db.transaction {
                 for (portalCycle in cycles) {
@@ -537,7 +537,7 @@ class SqlDelightSyncRepository(
                         description = portalCycle.description,
                         created_at = currentTimeMillis(),
                         is_active = if (portalCycle.status == "active") 1L else 0L,
-                        profile_id = "default"
+                        profile_id = profileId
                     )
 
                     // For existing cycles, update metadata (updateTrainingCycle takes 4 params: name, description, is_active, id)

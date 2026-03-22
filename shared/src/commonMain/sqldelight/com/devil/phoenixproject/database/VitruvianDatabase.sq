@@ -704,6 +704,10 @@ WHERE exerciseId = ? AND workoutMode = ? AND prType = ? AND phase = ? AND profil
 selectAllPRIds:
 SELECT id FROM PersonalRecord;
 
+-- Get all PRs unfiltered (for backup export across all profiles)
+selectAllRecordsSync:
+SELECT * FROM PersonalRecord ORDER BY achievedAt DESC;
+
 -- Routine Queries
 selectAllRoutines:
 SELECT * FROM Routine WHERE profile_id = :profileId ORDER BY name ASC;
