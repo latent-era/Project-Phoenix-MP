@@ -659,8 +659,8 @@ class SqlDelightWorkoutRepository(
         }
     }
 
-    override fun getAllPersonalRecords(): Flow<List<PersonalRecordEntity>> {
-        return queries.selectAllRecords(profileId = "default") { id, exerciseId, exerciseName, weight, reps, oneRepMax, achievedAt, workoutMode, prType, volume, phase, updatedAt, serverId, deletedAt, profileId ->
+    override fun getAllPersonalRecords(profileId: String): Flow<List<PersonalRecordEntity>> {
+        return queries.selectAllRecords(profileId = profileId) { id, exerciseId, exerciseName, weight, reps, oneRepMax, achievedAt, workoutMode, prType, volume, phase, updatedAt, serverId, deletedAt, profileId_ ->
             PersonalRecordEntity(
                 id = id,
                 exerciseId = exerciseId,

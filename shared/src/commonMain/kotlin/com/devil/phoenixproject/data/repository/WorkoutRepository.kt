@@ -54,7 +54,7 @@ interface WorkoutRepository {
     suspend fun markRoutineUsed(routineId: String)
 
     // Personal records
-    fun getAllPersonalRecords(): Flow<List<PersonalRecordEntity>>
+    fun getAllPersonalRecords(profileId: String): Flow<List<PersonalRecordEntity>>
     suspend fun updatePRIfBetter(exerciseId: String, weightKg: Float, reps: Int, mode: String)
 
     /**
