@@ -106,8 +106,12 @@ class SyncManager(
         val pushResponse = pushResult.getOrThrow()
         val syncTimeEpoch = kotlin.time.Instant.parse(pushResponse.syncTime).toEpochMilliseconds()
 
-        // Pull remote changes using push response timestamp (not stale lastSync)
-        val pullSyncTime = pullRemoteChanges(lastSync = syncTimeEpoch)
+        // Pull remote changes using the STORED lastSync (before push), not the push
+        // response time. Using the push response time would ask "what changed since NOW"
+        // which always returns 0 results. The stored lastSync tells the server "give me
+        // everything that changed since my last successful sync."
+        val storedLastSync = tokenStorage.getLastSyncTimestamp()
+        val pullSyncTime = pullRemoteChanges(lastSync = storedLastSync)
         val finalSyncTime = pullSyncTime ?: syncTimeEpoch
 
         tokenStorage.setLastSyncTimestamp(finalSyncTime)
