@@ -546,6 +546,24 @@ INSERT INTO WorkoutSession (
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+-- Insert session only if ID doesn't already exist (for sync pull deduplication)
+insertSessionIgnore:
+INSERT OR IGNORE INTO WorkoutSession (
+    id, timestamp, mode, targetReps, weightPerCableKg, progressionKg,
+    duration, totalReps, warmupReps, workingReps,
+    isJustLift, stopAtTop, eccentricLoad, echoLevel,
+    exerciseId, exerciseName, routineSessionId, routineName, routineId,
+    safetyFlags, deloadWarningCount, romViolationCount, spotterActivations,
+    peakForceConcentricA, peakForceConcentricB, peakForceEccentricA, peakForceEccentricB,
+    avgForceConcentricA, avgForceConcentricB, avgForceEccentricA, avgForceEccentricB,
+    heaviestLiftKg, totalVolumeKg, cableCount, estimatedCalories,
+    warmupAvgWeightKg, workingAvgWeightKg, burnoutAvgWeightKg, peakWeightKg, rpe,
+    avgMcvMmS, avgAsymmetryPercent, totalVelocityLossPercent, dominantSide, strengthProfile,
+    formScore,
+    profile_id
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
 updateSession:
 UPDATE WorkoutSession
 SET duration = ?, totalReps = ?, workingReps = ?, formScore = ?
