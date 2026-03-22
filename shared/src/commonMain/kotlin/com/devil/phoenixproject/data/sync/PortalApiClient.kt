@@ -142,11 +142,11 @@ open class PortalApiClient(
             httpClient.post("${supabaseConfig.url}/functions/v1/mobile-sync-pull") {
                 bearerAuth(token)
                 header("apikey", supabaseConfig.anonKey)
-                setBody(buildMap<String, Any> {
-                    put("deviceId", deviceId)
-                    put("lastSync", lastSync)
-                    if (profileId != null) put("profileId", profileId)
-                })
+                setBody(PortalSyncPullRequest(
+                    deviceId = deviceId,
+                    lastSync = lastSync,
+                    profileId = profileId
+                ))
             }
         }
     }
