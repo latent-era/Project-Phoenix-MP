@@ -81,9 +81,12 @@ class SyncManager(
         _syncState.value = SyncState.Syncing
 
         // Push local changes (no status check -- Railway backend abandoned)
+        val rawToken = tokenStorage.getToken()
+        Logger.i("SyncManager") { "Token expired: ${tokenStorage.isTokenExpired()}, expiresAt: ${tokenStorage.getExpiresAt()}, tokenLen: ${rawToken?.length}, tokenStart: ${rawToken?.take(20)}" }
         val pushResult = pushLocalChanges()
         if (pushResult.isFailure) {
             val error = pushResult.exceptionOrNull()
+            Logger.e("SyncManager") { "Push FAILED: status=${(error as? PortalApiException)?.statusCode}, msg=${error?.message}" }
             if (error is PortalApiException && error.statusCode == 401) {
                 _syncState.value = SyncState.NotAuthenticated
             } else if (error is PortalApiException && (error.statusCode == 402 || error.statusCode == 403)) {
@@ -94,6 +97,7 @@ class SyncManager(
             }
             return@withLock Result.failure(error ?: Exception("Push failed"))
         }
+        Logger.i("SyncManager") { "Push succeeded" }
 
         // Successful push confirms premium status
         tokenStorage.updatePremiumStatus(true)
@@ -249,8 +253,9 @@ class SyncManager(
         val deviceId = tokenStorage.getDeviceId()
         val activeProfileId = userProfileRepository.activeProfile.value?.id
 
-        // 1. Call pull Edge Function (pass profileId for profile-scoped filtering)
-        val pullResult = apiClient.pullPortalPayload(lastSync, deviceId, activeProfileId)
+        // Pull remote changes. profileId filters server-side by local_profile_id column.
+        // Pass null to pull all data (no profile filtering) — local merge assigns profiles.
+        val pullResult = apiClient.pullPortalPayload(lastSync, deviceId, profileId = null)
         if (pullResult.isFailure) {
             Logger.w("SyncManager") {
                 "Pull failed (non-fatal): ${pullResult.exceptionOrNull()?.message}"
