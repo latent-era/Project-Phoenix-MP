@@ -9,7 +9,8 @@ import platform.Foundation.NSRecursiveLock
  * A single global instance is intentional: per-object lock maps would leak memory
  * because Kotlin/Native has no weak-reference-based cleanup for the map keys.
  */
-private val globalLock = NSRecursiveLock()
+@PublishedApi
+internal val globalLock = NSRecursiveLock()
 
 actual inline fun <T> withPlatformLock(lock: Any, block: () -> T): T {
     globalLock.lock()

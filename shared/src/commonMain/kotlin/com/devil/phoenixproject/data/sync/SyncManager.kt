@@ -50,6 +50,8 @@ class SyncManager(
     suspend fun login(email: String, password: String): Result<PortalUser> {
         return apiClient.signIn(email, password).map { goTrueResponse ->
             tokenStorage.saveGoTrueAuth(goTrueResponse)
+            _syncState.value = SyncState.Idle // Reset stale NotAuthenticated state
+            Logger.i("SyncManager") { "Login successful for ${goTrueResponse.user.email}" }
             goTrueResponse.toPortalAuthResponse().user
         }
     }
@@ -57,6 +59,8 @@ class SyncManager(
     suspend fun signup(email: String, password: String, displayName: String): Result<PortalUser> {
         return apiClient.signUp(email, password, displayName).map { goTrueResponse ->
             tokenStorage.saveGoTrueAuth(goTrueResponse)
+            _syncState.value = SyncState.Idle // Reset stale NotAuthenticated state
+            Logger.i("SyncManager") { "Signup successful for ${goTrueResponse.user.email}" }
             goTrueResponse.toPortalAuthResponse().user
         }
     }
@@ -77,9 +81,11 @@ class SyncManager(
         _syncState.value = SyncState.Syncing
 
         // Push local changes (no status check -- Railway backend abandoned)
+        Logger.i("SyncManager") { "Token expired: ${tokenStorage.isTokenExpired()}, expiresAt: ${tokenStorage.getExpiresAt()}" }
         val pushResult = pushLocalChanges()
         if (pushResult.isFailure) {
             val error = pushResult.exceptionOrNull()
+            Logger.e("SyncManager") { "Push FAILED: status=${(error as? PortalApiException)?.statusCode}, msg=${error?.message}" }
             if (error is PortalApiException && error.statusCode == 401) {
                 _syncState.value = SyncState.NotAuthenticated
             } else if (error is PortalApiException && (error.statusCode == 402 || error.statusCode == 403)) {
@@ -90,6 +96,7 @@ class SyncManager(
             }
             return@withLock Result.failure(error ?: Exception("Push failed"))
         }
+        Logger.i("SyncManager") { "Push succeeded" }
 
         // Successful push confirms premium status
         tokenStorage.updatePremiumStatus(true)
@@ -98,8 +105,12 @@ class SyncManager(
         val pushResponse = pushResult.getOrThrow()
         val syncTimeEpoch = kotlin.time.Instant.parse(pushResponse.syncTime).toEpochMilliseconds()
 
-        // Pull remote changes using push response timestamp (not stale lastSync)
-        val pullSyncTime = pullRemoteChanges(lastSync = syncTimeEpoch)
+        // Pull remote changes using the STORED lastSync (before push), not the push
+        // response time. Using the push response time would ask "what changed since NOW"
+        // which always returns 0 results. The stored lastSync tells the server "give me
+        // everything that changed since my last successful sync."
+        val storedLastSync = tokenStorage.getLastSyncTimestamp()
+        val pullSyncTime = pullRemoteChanges(lastSync = storedLastSync)
         val finalSyncTime = pullSyncTime ?: syncTimeEpoch
 
         tokenStorage.setLastSyncTimestamp(finalSyncTime)
@@ -238,15 +249,15 @@ class SyncManager(
 
     /**
      * Pull portal data and merge into local database.
-     * Sessions are skipped (immutable/push-only per PULL-03).
      * Returns the pull response syncTime on success, or null on failure.
      */
     private suspend fun pullRemoteChanges(lastSync: Long): Long? {
         val deviceId = tokenStorage.getDeviceId()
         val activeProfileId = userProfileRepository.activeProfile.value?.id
 
-        // 1. Call pull Edge Function (pass profileId for profile-scoped filtering)
-        val pullResult = apiClient.pullPortalPayload(lastSync, deviceId, activeProfileId)
+        // Pull remote changes filtered by active profile to prevent cross-profile contamination.
+        // The server filters by local_profile_id column; merge assigns the same profileId locally.
+        val pullResult = apiClient.pullPortalPayload(lastSync, deviceId, profileId = activeProfileId)
         if (pullResult.isFailure) {
             Logger.w("SyncManager") {
                 "Pull failed (non-fatal): ${pullResult.exceptionOrNull()?.message}"
@@ -259,13 +270,21 @@ class SyncManager(
             "Pull response: ${pullResponse.routines.size} routines, " +
             "${pullResponse.cycles.size} cycles, " +
             "${pullResponse.badges.size} badges, " +
-            "sessions=${pullResponse.sessions.size} (skipped)"
+            "sessions=${pullResponse.sessions.size}"
         }
 
-        // 2. Sessions — SKIPPED (immutable/push-only per PULL-03)
-        // pullResponse.sessions is deserialized but not merged.
-
         val mergeProfileId = activeProfileId ?: "default"
+
+        // 2. Sessions — merge from portal (INSERT OR IGNORE, local data wins)
+        if (pullResponse.sessions.isNotEmpty()) {
+            val mobileSessions = pullResponse.sessions.flatMap { portalSession ->
+                PortalPullAdapter.toWorkoutSessions(portalSession, mergeProfileId)
+            }
+            if (mobileSessions.isNotEmpty()) {
+                syncRepository.mergePortalSessions(mobileSessions)
+                Logger.d("SyncManager") { "Merged ${mobileSessions.size} portal sessions from ${pullResponse.sessions.size} workouts" }
+            }
+        }
 
         // 3. Routines — merge with local preference (PULL-03)
         if (pullResponse.routines.isNotEmpty()) {

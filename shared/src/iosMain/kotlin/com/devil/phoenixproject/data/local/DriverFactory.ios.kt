@@ -938,6 +938,8 @@ actual class DriverFactory {
         safeAddColumn(driver, "RoutineExercise", "stallDetectionEnabled", "INTEGER NOT NULL DEFAULT 1")
         safeAddColumn(driver, "RoutineExercise", "stopAtTop", "INTEGER NOT NULL DEFAULT 0")
         safeAddColumn(driver, "RoutineExercise", "repCountTiming", "TEXT NOT NULL DEFAULT 'TOP'")
+        safeAddColumn(driver, "RoutineExercise", "setEchoLevels", "TEXT NOT NULL DEFAULT ''")
+        safeAddColumn(driver, "RoutineExercise", "warmupSets", "TEXT NOT NULL DEFAULT ''")
 
         // WorkoutSession columns (migration 5 + 11 + 12 + 13)
         safeAddColumn(driver, "WorkoutSession", "routineId", "TEXT")

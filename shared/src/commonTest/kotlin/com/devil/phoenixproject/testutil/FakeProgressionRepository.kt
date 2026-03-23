@@ -25,33 +25,33 @@ class FakeProgressionRepository : ProgressionRepository {
         pendingFlow.value = emptyList()
     }
 
-    override suspend fun getProgressionEvents(exerciseId: String): List<ProgressionEvent> {
+    override suspend fun getProgressionEvents(exerciseId: String, profileId: String): List<ProgressionEvent> {
         return eventsByExercise[exerciseId]
             ?.mapNotNull { events[it] }
             ?.sortedByDescending { it.timestamp }
             ?: emptyList()
     }
 
-    override fun getProgressionEventsFlow(exerciseId: String): Flow<List<ProgressionEvent>> {
+    override fun getProgressionEventsFlow(exerciseId: String, profileId: String): Flow<List<ProgressionEvent>> {
         val flow = eventsFlowByExercise.getOrPut(exerciseId) {
             MutableStateFlow(emptyList())
         }
         return flow.asStateFlow()
     }
 
-    override suspend fun getLatestProgressionEvent(exerciseId: String): ProgressionEvent? {
-        return getProgressionEvents(exerciseId).firstOrNull()
+    override suspend fun getLatestProgressionEvent(exerciseId: String, profileId: String): ProgressionEvent? {
+        return getProgressionEvents(exerciseId, profileId).firstOrNull()
     }
 
-    override suspend fun getPendingProgressions(): List<ProgressionEvent> {
+    override suspend fun getPendingProgressions(profileId: String): List<ProgressionEvent> {
         return events.values.filter { it.isPending() }.sortedByDescending { it.timestamp }
     }
 
-    override fun getPendingProgressionsFlow(): Flow<List<ProgressionEvent>> {
+    override fun getPendingProgressionsFlow(profileId: String): Flow<List<ProgressionEvent>> {
         return pendingFlow.asStateFlow()
     }
 
-    override suspend fun hasPendingProgression(exerciseId: String): Boolean {
+    override suspend fun hasPendingProgression(exerciseId: String, profileId: String): Boolean {
         return eventsByExercise[exerciseId]
             ?.mapNotNull { events[it] }
             ?.any { it.isPending() }
@@ -84,7 +84,7 @@ class FakeProgressionRepository : ProgressionRepository {
         updatePendingFlow()
     }
 
-    override suspend fun deleteProgressionEventsForExercise(exerciseId: String) {
+    override suspend fun deleteProgressionEventsForExercise(exerciseId: String, profileId: String) {
         eventsByExercise.remove(exerciseId)?.forEach { events.remove(it) }
         updateExerciseFlow(exerciseId)
         updatePendingFlow()

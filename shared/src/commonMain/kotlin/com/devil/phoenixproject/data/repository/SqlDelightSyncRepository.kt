@@ -425,100 +425,111 @@ class SqlDelightSyncRepository(
                         profile_id = existing?.profile_id ?: profileId
                     )
 
-                    // Replace routine exercises and supersets: delete existing then insert portal versions
-                    queries.deleteRoutineExercises(portalRoutine.id)
-                    queries.deleteSupersetsByRoutine(portalRoutine.id)
+                    // SAFETY GUARD: Only replace exercises if the portal actually sent exercises.
+                    // An empty exercises list means the payload is incomplete (server omission,
+                    // partial response, or deserialization issue). Deleting local exercises
+                    // when we have nothing to replace them with causes permanent data loss.
+                    if (portalRoutine.exercises.isNotEmpty()) {
+                        // Replace routine exercises and supersets: delete existing then insert portal versions
+                        queries.deleteRoutineExercises(portalRoutine.id)
+                        queries.deleteSupersetsByRoutine(portalRoutine.id)
 
-                    // Create Superset rows BEFORE inserting exercises (FK constraint).
-                    // Group exercises by supersetId and create one Superset per group.
-                    val supersetGroups = portalRoutine.exercises
-                        .filter { it.supersetId != null }
-                        .groupBy { it.supersetId!! }
-                    var supersetOrderIdx = 0
-                    for ((ssId, ssExercises) in supersetGroups) {
-                        val colorStr = ssExercises.firstOrNull()?.supersetColor
-                        val colorIndex = colorStr?.toLongOrNull() ?: supersetOrderIdx.toLong()
-                        queries.insertSupersetIgnore(
-                            id = ssId,
-                            routineId = portalRoutine.id,
-                            name = "Superset ${supersetOrderIdx + 1}",
-                            colorIndex = colorIndex,
-                            restBetweenSeconds = 10L, // default
-                            orderIndex = supersetOrderIdx.toLong()
-                        )
-                        supersetOrderIdx++
-                    }
-
-                    for (exercise in portalRoutine.exercises) {
-                        // Build setReps string: e.g., "10,10,10" for sets=3, reps=10
-                        val repsList = List(exercise.sets) {
-                            if (exercise.isAmrap && it == exercise.sets - 1) "AMRAP"
-                            else exercise.reps.toString()
+                        // Create Superset rows BEFORE inserting exercises (FK constraint).
+                        // Group exercises by supersetId and create one Superset per group.
+                        val supersetGroups = portalRoutine.exercises
+                            .filter { it.supersetId != null }
+                            .groupBy { it.supersetId!! }
+                        var supersetOrderIdx = 0
+                        for ((ssId, ssExercises) in supersetGroups) {
+                            val colorStr = ssExercises.firstOrNull()?.supersetColor
+                            val colorIndex = colorStr?.toLongOrNull() ?: supersetOrderIdx.toLong()
+                            queries.insertSupersetIgnore(
+                                id = ssId,
+                                routineId = portalRoutine.id,
+                                name = "Superset ${supersetOrderIdx + 1}",
+                                colorIndex = colorIndex,
+                                restBetweenSeconds = 10L, // default
+                                orderIndex = supersetOrderIdx.toLong()
+                            )
+                            supersetOrderIdx++
                         }
-                        val setReps = repsList.joinToString(",")
 
-                        // Convert perSetWeights JSON "[50,55,60]" to comma-separated "50.0,55.0,60.0"
-                        val setWeights = exercise.perSetWeights?.let { jsonStr ->
-                            try {
-                                val parsed = Json.decodeFromString<List<Float>>(jsonStr)
-                                parsed.joinToString(",") { it.toString() }
-                            } catch (_: Exception) { "" }
-                        } ?: ""
+                        for (exercise in portalRoutine.exercises) {
+                            // Build setReps string: e.g., "10,10,10" for sets=3, reps=10
+                            val repsList = List(exercise.sets) {
+                                if (exercise.isAmrap && it == exercise.sets - 1) "AMRAP"
+                                else exercise.reps.toString()
+                            }
+                            val setReps = repsList.joinToString(",")
 
-                        // perSetRest is already JSON array format, use as setRestSeconds
-                        val setRestSeconds = exercise.perSetRest ?: "[]"
+                            // Convert perSetWeights JSON "[50,55,60]" to comma-separated "50.0,55.0,60.0"
+                            val setWeights = exercise.perSetWeights?.let { jsonStr ->
+                                try {
+                                    val parsed = Json.decodeFromString<List<Float>>(jsonStr)
+                                    parsed.joinToString(",") { it.toString() }
+                                } catch (_: Exception) { "" }
+                            } ?: ""
 
-                        // Convert perSetEchoLevels from portal names to ordinal JSON
-                        val setEchoLevels = exercise.perSetEchoLevels?.let { jsonStr ->
-                            try {
-                                val names = Json.decodeFromString<List<String?>>(jsonStr)
-                                val ordinals = names.map { name ->
-                                    name?.let { PortalPullAdapter.parseEchoLevel(it).toInt() }
-                                }
-                                Json.encodeToString(ordinals)
-                            } catch (_: Exception) { "" }
-                        } ?: ""
+                            // perSetRest is already JSON array format, use as setRestSeconds
+                            val setRestSeconds = exercise.perSetRest ?: "[]"
 
-                        val mobileMode = PortalPullAdapter.portalModeToMobileMode(exercise.mode)
+                            // Convert perSetEchoLevels from portal names to ordinal JSON
+                            val setEchoLevels = exercise.perSetEchoLevels?.let { jsonStr ->
+                                try {
+                                    val names = Json.decodeFromString<List<String?>>(jsonStr)
+                                    val ordinals = names.map { name ->
+                                        name?.let { PortalPullAdapter.parseEchoLevel(it).toInt() }
+                                    }
+                                    Json.encodeToString(ordinals)
+                                } catch (_: Exception) { "" }
+                            } ?: ""
 
-                        // Attempt catalog lookup so equipment and exerciseId are populated.
-                        // Prevents bodyweight misclassification when equipment would default to "".
-                        val catalogExercise = queries.findExerciseByName(exercise.name).executeAsOneOrNull()
+                            val mobileMode = PortalPullAdapter.portalModeToMobileMode(exercise.mode)
 
-                        queries.insertRoutineExercise(
-                            id = exercise.id,
-                            routineId = portalRoutine.id,
-                            exerciseName = exercise.name,
-                            exerciseMuscleGroup = exercise.muscleGroup,
-                            exerciseEquipment = catalogExercise?.equipment ?: "Cable",
-                            exerciseDefaultCableConfig = catalogExercise?.defaultCableConfig ?: "DOUBLE",
-                            exerciseId = catalogExercise?.id, // Link to catalog when available
-                            cableConfig = "DOUBLE",
-                            orderIndex = exercise.orderIndex.toLong(),
-                            setReps = setReps,
-                            weightPerCableKg = exercise.weight.toDouble(),
-                            setWeights = setWeights,
-                            mode = mobileMode,
-                            eccentricLoad = PortalPullAdapter.parseEccentricLoad(exercise.eccentricLoad),
-                            echoLevel = PortalPullAdapter.parseEchoLevel(exercise.echoLevel),
-                            progressionKg = 0.0,
-                            restSeconds = exercise.restSeconds.toLong(),
-                            duration = null,
-                            setRestSeconds = setRestSeconds,
-                            perSetRestTime = if (exercise.perSetRest != null) 1L else 0L,
-                            isAMRAP = if (exercise.isAmrap) 1L else 0L,
-                            supersetId = exercise.supersetId,
-                            orderInSuperset = (exercise.supersetOrder ?: 0).toLong(),
-                            usePercentOfPR = if (exercise.prPercentage != null) 1L else 0L,
-                            weightPercentOfPR = (exercise.prPercentage?.toInt() ?: 80).toLong(),
-                            prTypeForScaling = "MAX_WEIGHT",
-                            setWeightsPercentOfPR = null,
-                            stallDetectionEnabled = if (exercise.stallDetection) 1L else 0L,
-                            stopAtTop = if (exercise.stopAtPosition == "TOP") 1L else 0L,
-                            repCountTiming = exercise.repCountTiming ?: "TOP",
-                            setEchoLevels = setEchoLevels,
-                            warmupSets = exercise.warmupSets ?: ""
-                        )
+                            // Attempt catalog lookup so equipment and exerciseId are populated.
+                            // Prevents bodyweight misclassification when equipment would default to "".
+                            val catalogExercise = queries.findExerciseByName(exercise.name).executeAsOneOrNull()
+
+                            queries.insertRoutineExercise(
+                                id = exercise.id,
+                                routineId = portalRoutine.id,
+                                exerciseName = exercise.name,
+                                exerciseMuscleGroup = exercise.muscleGroup,
+                                exerciseEquipment = catalogExercise?.equipment ?: "Cable",
+                                exerciseDefaultCableConfig = catalogExercise?.defaultCableConfig ?: "DOUBLE",
+                                exerciseId = catalogExercise?.id, // Link to catalog when available
+                                cableConfig = "DOUBLE",
+                                orderIndex = exercise.orderIndex.toLong(),
+                                setReps = setReps,
+                                weightPerCableKg = exercise.weight.toDouble(),
+                                setWeights = setWeights,
+                                mode = mobileMode,
+                                eccentricLoad = PortalPullAdapter.parseEccentricLoad(exercise.eccentricLoad),
+                                echoLevel = PortalPullAdapter.parseEchoLevel(exercise.echoLevel),
+                                progressionKg = 0.0,
+                                restSeconds = exercise.restSeconds.toLong(),
+                                duration = null,
+                                setRestSeconds = setRestSeconds,
+                                perSetRestTime = if (exercise.perSetRest != null) 1L else 0L,
+                                isAMRAP = if (exercise.isAmrap) 1L else 0L,
+                                supersetId = exercise.supersetId,
+                                orderInSuperset = (exercise.supersetOrder ?: 0).toLong(),
+                                usePercentOfPR = if (exercise.prPercentage != null) 1L else 0L,
+                                weightPercentOfPR = (exercise.prPercentage?.toInt() ?: 80).toLong(),
+                                prTypeForScaling = "MAX_WEIGHT",
+                                setWeightsPercentOfPR = null,
+                                stallDetectionEnabled = if (exercise.stallDetection) 1L else 0L,
+                                stopAtTop = if (exercise.stopAtPosition == "TOP") 1L else 0L,
+                                repCountTiming = exercise.repCountTiming ?: "TOP",
+                                setEchoLevels = setEchoLevels,
+                                warmupSets = exercise.warmupSets ?: ""
+                            )
+                        }
+                    } else {
+                        Logger.w("SyncRepository") {
+                            "Skipping exercise merge for routine '${portalRoutine.name}' (${portalRoutine.id}): " +
+                            "portal sent empty exercises list (exerciseCount=${portalRoutine.exerciseCount})"
+                        }
                     }
                 }
             }
@@ -590,6 +601,66 @@ class SqlDelightSyncRepository(
                 }
             }
             Logger.d { "Merged ${cycles.size} portal training cycles with days and progressions" }
+        }
+    }
+
+    override suspend fun mergePortalSessions(sessions: List<WorkoutSession>) {
+        withContext(Dispatchers.IO) {
+            db.transaction {
+                for (session in sessions) {
+                    queries.insertSessionIgnore(
+                        id = session.id,
+                        timestamp = session.timestamp,
+                        mode = session.mode,
+                        targetReps = session.reps.toLong(),
+                        weightPerCableKg = session.weightPerCableKg.toDouble(),
+                        progressionKg = session.progressionKg.toDouble(),
+                        duration = session.duration,
+                        totalReps = session.totalReps.toLong(),
+                        warmupReps = session.warmupReps.toLong(),
+                        workingReps = session.workingReps.toLong(),
+                        isJustLift = if (session.isJustLift) 1L else 0L,
+                        stopAtTop = if (session.stopAtTop) 1L else 0L,
+                        eccentricLoad = session.eccentricLoad.toLong(),
+                        echoLevel = session.echoLevel.toLong(),
+                        exerciseId = session.exerciseId,
+                        exerciseName = session.exerciseName,
+                        routineSessionId = session.routineSessionId,
+                        routineName = session.routineName,
+                        routineId = session.routineId,
+                        safetyFlags = session.safetyFlags.toLong(),
+                        deloadWarningCount = session.deloadWarningCount.toLong(),
+                        romViolationCount = session.romViolationCount.toLong(),
+                        spotterActivations = session.spotterActivations.toLong(),
+                        peakForceConcentricA = session.peakForceConcentricA?.toDouble(),
+                        peakForceConcentricB = session.peakForceConcentricB?.toDouble(),
+                        peakForceEccentricA = session.peakForceEccentricA?.toDouble(),
+                        peakForceEccentricB = session.peakForceEccentricB?.toDouble(),
+                        avgForceConcentricA = session.avgForceConcentricA?.toDouble(),
+                        avgForceConcentricB = session.avgForceConcentricB?.toDouble(),
+                        avgForceEccentricA = session.avgForceEccentricA?.toDouble(),
+                        avgForceEccentricB = session.avgForceEccentricB?.toDouble(),
+                        heaviestLiftKg = session.heaviestLiftKg?.toDouble(),
+                        totalVolumeKg = session.totalVolumeKg?.toDouble(),
+                        cableCount = session.cableCount?.toLong(),
+                        estimatedCalories = session.estimatedCalories?.toDouble(),
+                        warmupAvgWeightKg = session.warmupAvgWeightKg?.toDouble(),
+                        workingAvgWeightKg = session.workingAvgWeightKg?.toDouble(),
+                        burnoutAvgWeightKg = session.burnoutAvgWeightKg?.toDouble(),
+                        peakWeightKg = session.peakWeightKg?.toDouble(),
+                        rpe = session.rpe?.toLong(),
+                        avgMcvMmS = session.avgMcvMmS?.toDouble(),
+                        avgAsymmetryPercent = session.avgAsymmetryPercent?.toDouble(),
+                        totalVelocityLossPercent = session.totalVelocityLossPercent?.toDouble(),
+                        dominantSide = session.dominantSide,
+                        strengthProfile = session.strengthProfile,
+                        formScore = session.formScore?.toLong(),
+                        updatedAt = session.timestamp, // Mark as already-synced to prevent re-push
+                        profile_id = session.profileId
+                    )
+                }
+            }
+            Logger.d { "Merged ${sessions.size} portal sessions (INSERT OR IGNORE)" }
         }
     }
 

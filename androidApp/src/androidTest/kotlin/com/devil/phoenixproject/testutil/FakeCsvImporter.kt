@@ -8,7 +8,7 @@ import com.devil.phoenixproject.util.CsvImportResult
  * Returns a canned result without touching the filesystem or database.
  */
 class FakeCsvImporter : CsvImporter {
-    override suspend fun importFromCsv(uri: String): CsvImportResult {
+    override suspend fun importFromCsv(uri: String, profileId: String): CsvImportResult {
         return CsvImportResult(
             imported = 0,
             skipped = 0,

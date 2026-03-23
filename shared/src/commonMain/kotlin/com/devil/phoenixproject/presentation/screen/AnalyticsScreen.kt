@@ -31,6 +31,7 @@ import org.koin.compose.koinInject
 
 import com.devil.phoenixproject.util.KmpUtils
 import com.devil.phoenixproject.data.repository.ExerciseRepository
+import com.devil.phoenixproject.data.repository.UserProfileRepository
 import com.devil.phoenixproject.domain.model.PersonalRecord
 import androidx.compose.foundation.lazy.items
 import com.devil.phoenixproject.presentation.util.LocalWindowSizeClass
@@ -257,6 +258,9 @@ fun AnalyticsScreen(
     // CsvExporter and CsvImporter from DI
     val csvExporter: CsvExporter = koinInject()
     val csvImporter: CsvImporter = koinInject()
+    val userProfileRepository: UserProfileRepository = koinInject()
+    val activeProfile by userProfileRepository.activeProfile.collectAsState()
+    val activeProfileId = activeProfile?.id ?: "default"
     val scope = rememberCoroutineScope()
 
     // Import state
@@ -649,7 +653,7 @@ fun AnalyticsScreen(
                 isImporting = true
                 scope.launch(Dispatchers.Default) {
                     try {
-                        val result = csvImporter.importFromCsv(selectedFile)
+                        val result = csvImporter.importFromCsv(selectedFile, activeProfileId)
                         importResult = result
                         showImportResultDialog = true
                     } catch (e: Exception) {

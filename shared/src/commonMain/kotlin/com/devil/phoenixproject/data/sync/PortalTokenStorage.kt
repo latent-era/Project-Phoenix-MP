@@ -103,7 +103,8 @@ class PortalTokenStorage(private val settings: Settings) {
         settings.remove(KEY_USER_EMAIL)
         settings.remove(KEY_USER_NAME)
         settings.remove(KEY_IS_PREMIUM)
-        // Keep device ID and last sync for re-auth
+        settings.remove(KEY_LAST_SYNC) // Reset so re-link does a full pull
+        // Keep device ID for stable identity
 
         _isAuthenticated.value = false
         _currentUser.value = null

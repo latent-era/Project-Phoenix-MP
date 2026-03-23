@@ -21,7 +21,7 @@ class AndroidCsvImporter(
     private val workoutRepository: WorkoutRepository
 ) : CsvImporter {
 
-    override suspend fun importFromCsv(uri: String): CsvImportResult {
+    override suspend fun importFromCsv(uri: String, profileId: String): CsvImportResult {
         return withContext(Dispatchers.IO) {
             try {
                 val contentUri = Uri.parse(uri)
@@ -43,7 +43,7 @@ class AndroidCsvImporter(
 
                 // Pre-load existing sessions for duplicate detection (one DB round-trip).
                 // MutableSet so intra-file duplicates are also caught as they are imported.
-                val existingSessions = workoutRepository.getRecentSessionsSync(profileId = "default", limit = Int.MAX_VALUE)
+                val existingSessions = workoutRepository.getRecentSessionsSync(profileId = profileId, limit = Int.MAX_VALUE)
                 val existingKeys = existingSessions.map { s ->
                     DuplicateKey(s.timestamp, s.exerciseName ?: s.exerciseId ?: "")
                 }.toMutableSet()

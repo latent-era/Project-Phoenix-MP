@@ -453,6 +453,11 @@ actual class DriverFactory(private val context: Context) {
                             "ALTER TABLE WorkoutSession ADD COLUMN dominantSide TEXT",
                             "ALTER TABLE WorkoutSession ADD COLUMN strengthProfile TEXT"
                         )
+                        18 -> listOf(
+                            // Migration 18: Phase 4 Routine Programming columns
+                            "ALTER TABLE RoutineExercise ADD COLUMN setEchoLevels TEXT NOT NULL DEFAULT ''",
+                            "ALTER TABLE RoutineExercise ADD COLUMN warmupSets TEXT NOT NULL DEFAULT ''"
+                        )
                         else -> emptyList()
                     }
                 }
@@ -609,6 +614,19 @@ actual class DriverFactory(private val context: Context) {
                         table = "RoutineExercise",
                         column = "repCountTiming",
                         definition = "TEXT NOT NULL DEFAULT 'TOP'"
+                    )
+                    // Migration 18: Phase 4 Routine Programming columns
+                    safeAddColumn(
+                        db,
+                        table = "RoutineExercise",
+                        column = "setEchoLevels",
+                        definition = "TEXT NOT NULL DEFAULT ''"
+                    )
+                    safeAddColumn(
+                        db,
+                        table = "RoutineExercise",
+                        column = "warmupSets",
+                        definition = "TEXT NOT NULL DEFAULT ''"
                     )
                 }
 

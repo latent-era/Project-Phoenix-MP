@@ -52,5 +52,5 @@ interface CsvImporter {
      * @param uri Platform-specific file identifier (content:// URI on Android, file path on iOS)
      * @return [CsvImportResult] with counts and any error details
      */
-    suspend fun importFromCsv(uri: String): CsvImportResult
+    suspend fun importFromCsv(uri: String, profileId: String = "default"): CsvImportResult
 }

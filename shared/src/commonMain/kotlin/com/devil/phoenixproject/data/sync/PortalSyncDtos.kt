@@ -406,6 +406,18 @@ data class PortalSyncPayload(
 // These DTOs have property names matching the camelCase JSON directly.
 
 /**
+ * Request body for the mobile-sync-pull Edge Function.
+ * Uses a typed DTO instead of Map<String, Any> to avoid Kotlinx Serialization
+ * "different element types" error with heterogeneous maps.
+ */
+@Serializable
+data class PortalSyncPullRequest(
+    val deviceId: String,
+    val lastSync: Long,
+    val profileId: String? = null
+)
+
+/**
  * Response from the mobile-sync-pull Edge Function.
  * syncTime is epoch millis (Long), NOT ISO 8601 String like the push response.
  */

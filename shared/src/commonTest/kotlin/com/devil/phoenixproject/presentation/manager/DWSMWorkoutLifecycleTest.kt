@@ -944,8 +944,7 @@ class DWSMWorkoutLifecycleTest {
             totalReps = 10,
             isWarmupComplete = true
         )
-        harness.dwsm.coordinator.collectedMetrics.addAll(
-            listOf(
+        harness.dwsm.coordinator.collectedMetrics.value = listOf(
                 WorkoutMetric(
                     timestamp = 100L,
                     loadA = 60f,
@@ -964,7 +963,6 @@ class DWSMWorkoutLifecycleTest {
                     velocityA = -60.0,
                     velocityB = -60.0
                 )
-            )
         )
 
         harness.activeSessionEngine.handleSetCompletion()
@@ -974,9 +972,9 @@ class DWSMWorkoutLifecycleTest {
         assertEquals(60f, prUpdate.weightPRWeightPerCableKg)
         assertEquals(50f, prUpdate.volumePRWeightPerCableKg)
 
-        val updatedPr = harness.fakePRRepo.getWeightPR(deadliftId, "Old School")
+        val updatedPr = harness.fakePRRepo.getWeightPR(deadliftId, "Old School", "default")
         assertEquals(60f, updatedPr?.weightPerCableKg)
-        assertEquals(updatedPr?.id, harness.fakePRRepo.getWeightPR(deadliftId, "OldSchool")?.id)
+        assertEquals(updatedPr?.id, harness.fakePRRepo.getWeightPR(deadliftId, "OldSchool", "default")?.id)
 
         val session = harness.fakeWorkoutRepo.getAllSessions("default").first().first()
         assertEquals(60f, session.heaviestLiftKg)
