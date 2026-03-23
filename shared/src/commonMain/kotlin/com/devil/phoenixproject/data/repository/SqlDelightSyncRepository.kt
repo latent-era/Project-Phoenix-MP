@@ -655,6 +655,7 @@ class SqlDelightSyncRepository(
                         dominantSide = session.dominantSide,
                         strengthProfile = session.strengthProfile,
                         formScore = session.formScore?.toLong(),
+                        updatedAt = session.timestamp, // Mark as already-synced to prevent re-push
                         profile_id = session.profileId
                     )
                 }

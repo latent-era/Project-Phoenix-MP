@@ -134,8 +134,8 @@ class PortalPullAdapterSessionTest {
         )
 
         val sessions = PortalPullAdapter.toWorkoutSessions(portalSession, "default")
-        // 600 seconds / 3 exercises = 200 seconds each
-        assertEquals(200L, sessions[0].duration)
+        // 600 seconds / 3 exercises = 200 seconds each = 200_000 ms
+        assertEquals(200_000L, sessions[0].duration)
     }
 
     @Test

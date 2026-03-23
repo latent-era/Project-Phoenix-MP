@@ -51,7 +51,6 @@ object PortalPullAdapter {
         return portalSession.exercises.map { exercise ->
             val totalReps = exercise.sets.sumOf { it.actualReps }
             val maxWeight = exercise.sets.maxOfOrNull { it.weightKg } ?: 0f
-            val totalVolume = exercise.sets.sumOf { (it.weightKg * it.actualReps).toDouble() }.toFloat()
 
             WorkoutSession(
                 id = exercise.id,
@@ -59,7 +58,7 @@ object PortalPullAdapter {
                 mode = mobileMode,
                 reps = exercise.sets.firstOrNull()?.targetReps ?: totalReps / maxOf(exercise.sets.size, 1),
                 weightPerCableKg = maxWeight, // Already per-cable from DB
-                duration = (portalSession.durationSeconds / exerciseCount).toLong(),
+                duration = (portalSession.durationSeconds * 1000L) / exerciseCount, // seconds → ms
                 totalReps = totalReps,
                 warmupReps = 0, // Portal doesn't distinguish warmup vs working
                 workingReps = totalReps,
@@ -68,7 +67,7 @@ object PortalPullAdapter {
                 routineSessionId = portalSession.id,
                 routineName = portalSession.routineName,
                 heaviestLiftKg = maxWeight,
-                totalVolumeKg = totalVolume,
+                totalVolumeKg = null, // Let effectiveTotalVolumeKg() compute from weightPerCableKg * cableCount * totalReps
                 cableCount = 2,
                 profileId = profileId
             )
