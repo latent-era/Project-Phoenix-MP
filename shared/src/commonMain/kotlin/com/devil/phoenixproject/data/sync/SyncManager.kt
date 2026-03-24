@@ -128,12 +128,13 @@ class SyncManager(
         val deviceId = tokenStorage.getDeviceId()
         val lastSync = tokenStorage.getLastSyncTimestamp()
         val platform = getPlatformName()
+        val activeProfileId = userProfileRepository.activeProfile.value?.id ?: "default"
 
-        // 1. Gather workout sessions as full domain objects
-        val sessions = syncRepository.getWorkoutSessionsModifiedSince(lastSync)
+        // 1. Gather workout sessions as full domain objects (profile-scoped to prevent cross-profile leak)
+        val sessions = syncRepository.getWorkoutSessionsModifiedSince(lastSync, activeProfileId)
 
-        // 2. Fetch full PRs with type/phase/volume metadata (GAP 2 fix)
-        val recentPRs = syncRepository.getFullPRsModifiedSince(lastSync)
+        // 2. Fetch full PRs with type/phase/volume metadata (GAP 2 fix), profile-scoped
+        val recentPRs = syncRepository.getFullPRsModifiedSince(lastSync, activeProfileId)
         val prBySessionKey = recentPRs.associateBy { pr -> "${pr.exerciseId}:${pr.timestamp}" }
 
         // 3. Build SessionWithReps (fetch rep metrics per session, detect PRs, attach PR metadata)
@@ -151,8 +152,8 @@ class SyncManager(
             )
         }
 
-        // 4. Gather routines as full domain objects (exclude internal cycle_routine_ entries)
-        val routines = syncRepository.getFullRoutinesModifiedSince(lastSync)
+        // 4. Gather routines as full domain objects (exclude internal cycle_routine_ entries), profile-scoped
+        val routines = syncRepository.getFullRoutinesModifiedSince(lastSync, activeProfileId)
             .filterNot { it.id.startsWith("cycle_routine_") }
 
         // 4b. Gather training cycles (all — no delta, lacks updatedAt)

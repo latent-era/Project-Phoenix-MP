@@ -104,6 +104,9 @@ data class PersonalRecordSyncDto(
     val oneRepMax: Float,
     val achievedAt: Long,
     val workoutMode: String,
+    val prType: String = "MAX_WEIGHT",
+    val phase: String = "COMBINED",
+    val volume: Float = 0f,
     val deletedAt: Long? = null,
     val createdAt: Long,
     val updatedAt: Long

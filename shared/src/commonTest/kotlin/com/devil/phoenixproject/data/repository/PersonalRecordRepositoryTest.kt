@@ -243,15 +243,16 @@ class PersonalRecordRepositoryTest {
 
     @Test
     fun `getBestPR returns highest volume across all modes`() = runTest {
-        // Insert PRs with different volumes (weight * 2 * reps)
-        // OldSchool: 30kg * 2 * 10 = 600kg volume
+        // Insert PRs with different volumes (per-cable: weight * reps)
+        // OldSchool: 30kg * 10 = 300kg per-cable volume
         repository.updatePRsIfBetter(exerciseId, 30f, 10, "OldSchool", 1000L, profileId)
-        // Echo: 50kg * 2 * 8 = 800kg volume
+        // Echo: 50kg * 8 = 400kg per-cable volume
         repository.updatePRsIfBetter(exerciseId, 50f, 8, "Echo", 2000L, profileId)
 
         val bestPR = repository.getBestPR(exerciseId, profileId)
         assertNotNull(bestPR)
-        assertEquals(800f, bestPR.volume)
+        // Volume is per-cable (weight * reps). Display multiplier (x2) is portal-only.
+        assertEquals(400f, bestPR.volume)
         assertEquals("Echo", bestPR.workoutMode)
     }
 
@@ -268,14 +269,15 @@ class PersonalRecordRepositoryTest {
 
     @Test
     fun `getBestVolumePR without mode returns highest volume across all modes`() = runTest {
-        // OldSchool: 30kg * 2 * 15 = 900kg
+        // Per-cable volume: weight * reps (no 2x multiplier; display is portal-only)
+        // OldSchool: 30kg * 15 = 450kg per-cable volume
         repository.updatePRsIfBetter(exerciseId, 30f, 15, "OldSchool", 1000L, profileId)
-        // Echo: 50kg * 2 * 8 = 800kg
+        // Echo: 50kg * 8 = 400kg per-cable volume
         repository.updatePRsIfBetter(exerciseId, 50f, 8, "Echo", 2000L, profileId)
 
         val bestVolumePR = repository.getBestVolumePR(exerciseId, profileId)
         assertNotNull(bestVolumePR)
-        assertEquals(900f, bestVolumePR.volume)
+        assertEquals(450f, bestVolumePR.volume)
     }
 
     @Test
@@ -287,11 +289,11 @@ class PersonalRecordRepositoryTest {
         assertTrue(broken1.contains(PRType.MAX_WEIGHT))
         assertTrue(broken1.contains(PRType.MAX_VOLUME))
 
-        // Higher weight but same volume = only weight PR
+        // Higher weight but lower per-cable volume = only weight PR
         val result2 = repository.updatePRsIfBetter(exerciseId, 45f, 8, "OldSchool", 2000L, profileId)
         val broken2 = result2.getOrNull()!!
         assertTrue(broken2.contains(PRType.MAX_WEIGHT))
-        // Volume: 45 * 2 * 8 = 720 < 40 * 2 * 10 = 800, so no volume PR
+        // Per-cable volume: 45 * 8 = 360 < 40 * 10 = 400, so no volume PR
     }
 
     @Test

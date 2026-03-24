@@ -49,9 +49,9 @@ class SqlDelightSyncRepository(
 
     // === Push Operations ===
 
-    override suspend fun getSessionsModifiedSince(timestamp: Long): List<WorkoutSessionSyncDto> {
+    override suspend fun getSessionsModifiedSince(timestamp: Long, profileId: String): List<WorkoutSessionSyncDto> {
         return withContext(Dispatchers.IO) {
-            queries.selectSessionsModifiedSince(timestamp).executeAsList().map { row ->
+            queries.selectSessionsModifiedSince(timestamp, profileId = profileId).executeAsList().map { row ->
                 WorkoutSessionSyncDto(
                     clientId = row.id,
                     serverId = row.serverId,
@@ -71,9 +71,9 @@ class SqlDelightSyncRepository(
         }
     }
 
-    override suspend fun getPRsModifiedSince(timestamp: Long): List<PersonalRecordSyncDto> {
+    override suspend fun getPRsModifiedSince(timestamp: Long, profileId: String): List<PersonalRecordSyncDto> {
         return withContext(Dispatchers.IO) {
-            queries.selectPRsModifiedSince(timestamp).executeAsList().map { row ->
+            queries.selectPRsModifiedSince(timestamp, profileId = profileId).executeAsList().map { row ->
                 PersonalRecordSyncDto(
                     clientId = row.id.toString(),
                     serverId = row.serverId,
@@ -84,6 +84,9 @@ class SqlDelightSyncRepository(
                     oneRepMax = row.oneRepMax.toFloat(),
                     achievedAt = row.achievedAt,
                     workoutMode = row.workoutMode,
+                    prType = row.prType,
+                    phase = row.phase,
+                    volume = row.volume.toFloat(),
                     deletedAt = row.deletedAt,
                     createdAt = row.achievedAt,
                     updatedAt = row.updatedAt ?: row.achievedAt
@@ -92,9 +95,9 @@ class SqlDelightSyncRepository(
         }
     }
 
-    override suspend fun getRoutinesModifiedSince(timestamp: Long): List<RoutineSyncDto> {
+    override suspend fun getRoutinesModifiedSince(timestamp: Long, profileId: String): List<RoutineSyncDto> {
         return withContext(Dispatchers.IO) {
-            queries.selectRoutinesModifiedSince(timestamp).executeAsList().map { row ->
+            queries.selectRoutinesModifiedSince(timestamp, profileId = profileId).executeAsList().map { row ->
                 RoutineSyncDto(
                     clientId = row.id,
                     serverId = row.serverId,
@@ -269,8 +272,10 @@ class SqlDelightSyncRepository(
         withContext(Dispatchers.IO) {
             db.transaction {
                 records.forEach { dto ->
-                    // For PRs, we upsert by exerciseId + workoutMode (unique key)
-                    // Server data wins in conflicts
+                    // Upsert by compound key (exerciseId, workoutMode, prType, phase)
+                    // to match the UNIQUE INDEX idx_pr_unique.
+                    // Uses DTO-supplied prType/phase/volume with backward-compatible defaults.
+                    val effectiveVolume = if (dto.volume > 0f) dto.volume else dto.weight * dto.reps
                     queries.upsertPR(
                         exerciseId = dto.exerciseId,
                         exerciseName = dto.exerciseName,
@@ -279,9 +284,9 @@ class SqlDelightSyncRepository(
                         oneRepMax = dto.oneRepMax.toDouble(),
                         achievedAt = dto.achievedAt,
                         workoutMode = dto.workoutMode,
-                        prType = "MAX_WEIGHT",
-                        volume = (dto.weight * dto.reps).toDouble(),
-                        phase = "COMBINED",
+                        prType = dto.prType,
+                        volume = effectiveVolume.toDouble(),
+                        phase = dto.phase,
                         profile_id = "default"
                     )
                 }
@@ -666,15 +671,15 @@ class SqlDelightSyncRepository(
 
     // === Portal Push Operations (full domain objects) ===
 
-    override suspend fun getWorkoutSessionsModifiedSince(timestamp: Long): List<WorkoutSession> {
+    override suspend fun getWorkoutSessionsModifiedSince(timestamp: Long, profileId: String): List<WorkoutSession> {
         return withContext(Dispatchers.IO) {
-            queries.selectSessionsModifiedSince(timestamp, ::mapToWorkoutSession).executeAsList()
+            queries.selectSessionsModifiedSince(timestamp, profileId = profileId, ::mapToWorkoutSession).executeAsList()
         }
     }
 
-    override suspend fun getFullRoutinesModifiedSince(timestamp: Long): List<Routine> {
+    override suspend fun getFullRoutinesModifiedSince(timestamp: Long, profileId: String): List<Routine> {
         return withContext(Dispatchers.IO) {
-            val routineRows = queries.selectRoutinesModifiedSince(timestamp).executeAsList()
+            val routineRows = queries.selectRoutinesModifiedSince(timestamp, profileId = profileId).executeAsList()
             routineRows.map { row ->
                 val exerciseRows = queries.selectExercisesByRoutine(row.id).executeAsList()
                 val supersetRows = queries.selectSupersetsByRoutine(row.id).executeAsList()
@@ -1004,9 +1009,9 @@ class SqlDelightSyncRepository(
 
     // === Extended Sync Methods (GAPs 1-9) ===
 
-    override suspend fun getFullPRsModifiedSince(timestamp: Long): List<PersonalRecord> {
+    override suspend fun getFullPRsModifiedSince(timestamp: Long, profileId: String): List<PersonalRecord> {
         return withContext(Dispatchers.IO) {
-            queries.selectPRsModifiedSince(timestamp).executeAsList().map { row ->
+            queries.selectPRsModifiedSince(timestamp, profileId = profileId).executeAsList().map { row ->
                 PersonalRecord(
                     id = row.id,
                     exerciseId = row.exerciseId,

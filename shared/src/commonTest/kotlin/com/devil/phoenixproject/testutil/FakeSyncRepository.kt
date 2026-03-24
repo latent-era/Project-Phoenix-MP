@@ -57,15 +57,15 @@ class FakeSyncRepository : SyncRepository {
 
     // === Push Operations ===
 
-    override suspend fun getSessionsModifiedSince(timestamp: Long): List<WorkoutSessionSyncDto> {
+    override suspend fun getSessionsModifiedSince(timestamp: Long, profileId: String): List<WorkoutSessionSyncDto> {
         return sessionsToReturn
     }
 
-    override suspend fun getPRsModifiedSince(timestamp: Long): List<PersonalRecordSyncDto> {
+    override suspend fun getPRsModifiedSince(timestamp: Long, profileId: String): List<PersonalRecordSyncDto> {
         return prsToReturn
     }
 
-    override suspend fun getRoutinesModifiedSince(timestamp: Long): List<RoutineSyncDto> {
+    override suspend fun getRoutinesModifiedSince(timestamp: Long, profileId: String): List<RoutineSyncDto> {
         return legacyRoutinesToReturn
     }
 
@@ -83,11 +83,11 @@ class FakeSyncRepository : SyncRepository {
 
     // === Portal Push Operations ===
 
-    override suspend fun getWorkoutSessionsModifiedSince(timestamp: Long): List<WorkoutSession> {
+    override suspend fun getWorkoutSessionsModifiedSince(timestamp: Long, profileId: String): List<WorkoutSession> {
         return workoutSessionsToReturn
     }
 
-    override suspend fun getFullRoutinesModifiedSince(timestamp: Long): List<Routine> {
+    override suspend fun getFullRoutinesModifiedSince(timestamp: Long, profileId: String): List<Routine> {
         return routinesToReturn
     }
 
@@ -135,7 +135,7 @@ class FakeSyncRepository : SyncRepository {
 
     override suspend fun getFullCyclesForSync(): List<CycleWithContext> = emptyList()
 
-    override suspend fun getFullPRsModifiedSince(timestamp: Long): List<PersonalRecord> = emptyList()
+    override suspend fun getFullPRsModifiedSince(timestamp: Long, profileId: String): List<PersonalRecord> = emptyList()
 
     override suspend fun getPhaseStatisticsForSessions(sessionIds: List<String>): List<PhaseStatistics> = emptyList()
 

@@ -23,19 +23,19 @@ interface SyncRepository {
     // === Push Operations (get local changes) ===
 
     /**
-     * Get workout sessions modified since the given timestamp
+     * Get workout sessions modified since the given timestamp, scoped to profile
      */
-    suspend fun getSessionsModifiedSince(timestamp: Long): List<WorkoutSessionSyncDto>
+    suspend fun getSessionsModifiedSince(timestamp: Long, profileId: String = "default"): List<WorkoutSessionSyncDto>
 
     /**
-     * Get personal records modified since the given timestamp
+     * Get personal records modified since the given timestamp, scoped to profile
      */
-    suspend fun getPRsModifiedSince(timestamp: Long): List<PersonalRecordSyncDto>
+    suspend fun getPRsModifiedSince(timestamp: Long, profileId: String = "default"): List<PersonalRecordSyncDto>
 
     /**
-     * Get routines modified since the given timestamp
+     * Get routines modified since the given timestamp, scoped to profile
      */
-    suspend fun getRoutinesModifiedSince(timestamp: Long): List<RoutineSyncDto>
+    suspend fun getRoutinesModifiedSince(timestamp: Long, profileId: String = "default"): List<RoutineSyncDto>
 
     /**
      * Get custom exercises modified since the given timestamp
@@ -55,16 +55,16 @@ interface SyncRepository {
     // === Portal Push Operations (full domain objects) ===
 
     /**
-     * Get full WorkoutSession domain objects modified since timestamp.
+     * Get full WorkoutSession domain objects modified since timestamp, scoped to profile.
      * Returns rich objects with routineSessionId, totalVolumeKg, etc. needed by PortalSyncAdapter.
      */
-    suspend fun getWorkoutSessionsModifiedSince(timestamp: Long): List<WorkoutSession>
+    suspend fun getWorkoutSessionsModifiedSince(timestamp: Long, profileId: String = "default"): List<WorkoutSession>
 
     /**
-     * Get full Routine domain objects modified since timestamp.
+     * Get full Routine domain objects modified since timestamp, scoped to profile.
      * Returns rich objects with exercises, supersets, etc. needed by PortalSyncAdapter.toPortalRoutine().
      */
-    suspend fun getFullRoutinesModifiedSince(timestamp: Long): List<Routine>
+    suspend fun getFullRoutinesModifiedSince(timestamp: Long, profileId: String = "default"): List<Routine>
 
     /**
      * Get all training cycles with their progress and progression context for push.
@@ -73,10 +73,10 @@ interface SyncRepository {
     suspend fun getFullCyclesForSync(): List<CycleWithContext>
 
     /**
-     * Get full PersonalRecord domain objects modified since timestamp.
+     * Get full PersonalRecord domain objects modified since timestamp, scoped to profile.
      * Returns rich objects with prType, phase, and volume for PortalSyncAdapter PR metadata.
      */
-    suspend fun getFullPRsModifiedSince(timestamp: Long): List<PersonalRecord>
+    suspend fun getFullPRsModifiedSince(timestamp: Long, profileId: String = "default"): List<PersonalRecord>
 
     /**
      * Get phase statistics for the given session IDs.

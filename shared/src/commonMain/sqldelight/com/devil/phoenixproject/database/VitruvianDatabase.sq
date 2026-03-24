@@ -1648,6 +1648,7 @@ SELECT subscription_status FROM UserProfile WHERE isActive = 1;
 selectSessionsModifiedSince:
 SELECT * FROM WorkoutSession
 WHERE (updatedAt > ? OR updatedAt IS NULL) AND deletedAt IS NULL
+AND profile_id = :profileId
 ORDER BY timestamp DESC;
 
 -- Get soft-deleted sessions (for push)
@@ -1685,7 +1686,8 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
 -- Get PRs modified since last sync
 selectPRsModifiedSince:
 SELECT * FROM PersonalRecord
-WHERE (updatedAt > ? OR updatedAt IS NULL) AND deletedAt IS NULL;
+WHERE (updatedAt > ? OR updatedAt IS NULL) AND deletedAt IS NULL
+AND profile_id = :profileId;
 
 -- Update PR server ID
 updatePRServerId:
@@ -1694,7 +1696,8 @@ UPDATE PersonalRecord SET serverId = ? WHERE id = ?;
 -- Get routines modified since last sync
 selectRoutinesModifiedSince:
 SELECT * FROM Routine
-WHERE (updatedAt > ? OR updatedAt IS NULL) AND deletedAt IS NULL;
+WHERE (updatedAt > ? OR updatedAt IS NULL) AND deletedAt IS NULL
+AND profile_id = :profileId;
 
 -- Update routine server ID
 updateRoutineServerId:
