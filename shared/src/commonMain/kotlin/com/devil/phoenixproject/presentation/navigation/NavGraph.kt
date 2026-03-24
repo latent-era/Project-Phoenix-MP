@@ -61,6 +61,9 @@ fun NavGraph(
     // RoutineEditor consumes this to add/update the exercise in the routine
     var configuredExerciseResult by remember { mutableStateOf<RoutineExercise?>(null) }
 
+    // Track the current routineId so we can pop back to the exact route
+    var currentRoutineId by remember { mutableStateOf("new") }
+
     SharedTransitionLayout {
         NavHost(
             navController = navController,
@@ -433,11 +436,10 @@ fun NavGraph(
                     },
                     onSave = { configuredExercise ->
                         exerciseToConfigState = null
-                        // Pop everything up to and including ExerciseSelector,
-                        // landing on RoutineEditor (single call, no race)
+                        // Pop back to the exact RoutineEditor route using stored routineId
                         navController.popBackStack(
-                            route = NavigationRoutes.ExerciseSelector.route,
-                            inclusive = true
+                            route = "routine_editor/$currentRoutineId",
+                            inclusive = false
                         )
                         configuredExerciseResult = configuredExercise
                     },
@@ -465,6 +467,7 @@ fun NavGraph(
             popExitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(500)) },
         ) { backStackEntry ->
             val routineId = backStackEntry.arguments?.read { getStringOrNull("routineId") } ?: "new"
+            currentRoutineId = routineId
 
             // Collect dependencies from ViewModel/Koin
             val weightUnit by viewModel.weightUnit.collectAsState()
