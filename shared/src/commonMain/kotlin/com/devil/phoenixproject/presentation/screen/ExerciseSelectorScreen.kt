@@ -1,8 +1,6 @@
 package com.devil.phoenixproject.presentation.screen
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -15,18 +13,20 @@ import com.devil.phoenixproject.presentation.components.ExercisePickerContent
 import com.devil.phoenixproject.presentation.components.getEquipmentDatabaseValues
 import com.devil.phoenixproject.presentation.components.resolveCustomExerciseDeleteTarget
 import com.devil.phoenixproject.presentation.components.resolveCustomExerciseSaveAction
+import com.devil.phoenixproject.presentation.viewmodel.MainViewModel
 import com.devil.phoenixproject.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
 /**
- * Full-screen exercise selector — a real navigation destination that replaces
- * the old bottom-sheet / dialog overlay. Native back gesture works correctly
- * and compose state is preserved across the navigation stack.
+ * Full-screen exercise selector — a real navigation destination that renders
+ * inside the shared EnhancedMainScreen scaffold. No local Scaffold or TopAppBar;
+ * the title is set via viewModel.updateTopBarTitle().
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseSelectorScreen(
     navController: NavController,
+    viewModel: MainViewModel,
     exerciseRepository: ExerciseRepository,
     onExerciseSelected: (Exercise) -> Unit,
     enableVideoPlayback: Boolean = false,
@@ -82,6 +82,11 @@ fun ExerciseSelectorScreen(
         selectedEquipment = emptySet()
     }
 
+    // Set the shared scaffold title
+    LaunchedEffect(Unit) {
+        viewModel.updateTopBarTitle("Select Exercise")
+    }
+
     LaunchedEffect(Unit) {
         exerciseRepository.importExercises()
     }
@@ -128,77 +133,56 @@ fun ExerciseSelectorScreen(
         )
     }
 
-    // ---- Screen chrome ----
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Select Exercise") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
+    // ---- Content renders inside the shared EnhancedMainScreen scaffold ----
+    Box(modifier = Modifier.fillMaxSize()) {
+        ExercisePickerContent(
+            exercises = exercises,
+            searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it },
+            showFavoritesOnly = showFavoritesOnly,
+            onToggleFavorites = {
+                showFavoritesOnly = !showFavoritesOnly
+                if (showFavoritesOnly) showCustomOnly = false
+            },
+            showCustomOnly = showCustomOnly,
+            onToggleCustom = {
+                showCustomOnly = !showCustomOnly
+                if (showCustomOnly) showFavoritesOnly = false
+            },
+            customExerciseCount = customExercises.size,
+            selectedMuscles = selectedMuscles,
+            onToggleMuscle = { muscle ->
+                selectedMuscles = if (muscle in selectedMuscles) {
+                    selectedMuscles - muscle
+                } else {
+                    selectedMuscles + muscle
+                }
+            },
+            selectedEquipment = selectedEquipment,
+            onToggleEquipment = { equipment ->
+                selectedEquipment = if (equipment in selectedEquipment) {
+                    selectedEquipment - equipment
+                } else {
+                    selectedEquipment + equipment
+                }
+            },
+            onClearAllFilters = { clearAllFilters() },
+            onExerciseSelected = { exercise ->
+                onExerciseSelected(exercise)
+            },
+            onToggleFavorite = { exercise ->
+                exercise.id?.let {
+                    coroutineScope.launch {
+                        exerciseRepository.toggleFavorite(it)
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            ExercisePickerContent(
-                exercises = exercises,
-                searchQuery = searchQuery,
-                onSearchQueryChange = { searchQuery = it },
-                showFavoritesOnly = showFavoritesOnly,
-                onToggleFavorites = {
-                    showFavoritesOnly = !showFavoritesOnly
-                    if (showFavoritesOnly) showCustomOnly = false
-                },
-                showCustomOnly = showCustomOnly,
-                onToggleCustom = {
-                    showCustomOnly = !showCustomOnly
-                    if (showCustomOnly) showFavoritesOnly = false
-                },
-                customExerciseCount = customExercises.size,
-                selectedMuscles = selectedMuscles,
-                onToggleMuscle = { muscle ->
-                    selectedMuscles = if (muscle in selectedMuscles) {
-                        selectedMuscles - muscle
-                    } else {
-                        selectedMuscles + muscle
-                    }
-                },
-                selectedEquipment = selectedEquipment,
-                onToggleEquipment = { equipment ->
-                    selectedEquipment = if (equipment in selectedEquipment) {
-                        selectedEquipment - equipment
-                    } else {
-                        selectedEquipment + equipment
-                    }
-                },
-                onClearAllFilters = { clearAllFilters() },
-                onExerciseSelected = { exercise ->
-                    onExerciseSelected(exercise)
-                    navController.popBackStack()
-                },
-                onToggleFavorite = { exercise ->
-                    exercise.id?.let {
-                        coroutineScope.launch {
-                            exerciseRepository.toggleFavorite(it)
-                        }
-                    }
-                },
-                exerciseRepository = exerciseRepository,
-                enableVideoPlayback = enableVideoPlayback,
-                enableCustomExercises = enableCustomExercises,
-                onCreateExercise = { showCreateDialog = true },
-                onEditExercise = { exercise -> exerciseToEdit = exercise },
-                fullScreen = true,
-            )
-        }
+                }
+            },
+            exerciseRepository = exerciseRepository,
+            enableVideoPlayback = enableVideoPlayback,
+            enableCustomExercises = enableCustomExercises,
+            onCreateExercise = { showCreateDialog = true },
+            onEditExercise = { exercise -> exerciseToEdit = exercise },
+            fullScreen = true,
+        )
     }
 }

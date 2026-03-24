@@ -28,7 +28,9 @@ import com.devil.phoenixproject.data.repository.AuthRepository
 import com.devil.phoenixproject.data.repository.ExerciseRepository
 import com.devil.phoenixproject.data.repository.TrainingCycleRepository
 import com.devil.phoenixproject.domain.model.Exercise
+import com.devil.phoenixproject.domain.model.RoutineExercise
 import com.devil.phoenixproject.domain.model.TrainingCycle
+import com.devil.phoenixproject.domain.model.WeightUnit
 import com.devil.phoenixproject.domain.subscription.SubscriptionManager
 import com.devil.phoenixproject.presentation.screen.*
 import com.devil.phoenixproject.presentation.viewmodel.MainViewModel
@@ -49,8 +51,15 @@ fun NavGraph(
     onThemeModeChange: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Shared state for passing exercise selection results back from ExerciseSelector
-    var exerciseSelectorResult by remember { mutableStateOf<Exercise?>(null) }
+    // Hoisted state for exercise configuration flow
+    // exerciseToConfigState: the exercise being configured (set before navigating to ExerciseConfig)
+    var exerciseToConfigState by remember { mutableStateOf<RoutineExercise?>(null) }
+    var isNewExerciseState by remember { mutableStateOf(true) }
+    var editingIndexState by remember { mutableStateOf<Int?>(null) }
+
+    // configuredExerciseResult: the fully-configured exercise returned from ExerciseConfigScreen
+    // RoutineEditor consumes this to add/update the exercise in the routine
+    var configuredExerciseResult by remember { mutableStateOf<RoutineExercise?>(null) }
 
     SharedTransitionLayout {
         NavHost(
@@ -372,13 +381,63 @@ fun NavGraph(
 
             ExerciseSelectorScreen(
                 navController = navController,
+                viewModel = viewModel,
                 exerciseRepository = exerciseRepository,
                 onExerciseSelected = { exercise ->
-                    exerciseSelectorResult = exercise
+                    // Build a RoutineExercise shell and navigate to ExerciseConfig
+                    exerciseToConfigState = RoutineExercise(
+                        id = com.devil.phoenixproject.domain.model.generateUUID(),
+                        exercise = exercise,
+                        orderIndex = 0, // Will be corrected by RoutineEditor
+                        weightPerCableKg = 5f,
+                    )
+                    isNewExerciseState = true
+                    editingIndexState = null
+                    navController.navigate(NavigationRoutes.ExerciseConfig.route)
                 },
                 enableVideoPlayback = enableVideo,
                 themeMode = themeMode,
             )
+        }
+
+        // Exercise Config - full screen exercise configuration
+        composable(route = NavigationRoutes.ExerciseConfig.route) {
+            val weightUnit by viewModel.weightUnit.collectAsState()
+            val enableVideo by viewModel.enableVideoPlayback.collectAsState()
+
+            exerciseToConfigState?.let { exercise ->
+                ExerciseConfigScreen(
+                    exercise = exercise,
+                    navController = navController,
+                    viewModel = viewModel,
+                    weightUnit = weightUnit,
+                    enableVideoPlayback = enableVideo,
+                    kgToDisplay = viewModel::kgToDisplay,
+                    displayToKg = viewModel::displayToKg,
+                    exerciseRepository = exerciseRepository,
+                    formatWeight = { weight, unit ->
+                        val displayWeight = viewModel.kgToDisplay(weight, unit)
+                        if (unit == WeightUnit.LB) "${displayWeight.toInt()} lbs" else "${displayWeight.toInt()} kg"
+                    },
+                    onSave = { configuredExercise ->
+                        // Store configured result for RoutineEditor to consume
+                        configuredExerciseResult = configuredExercise
+                        exerciseToConfigState = null
+                        // Pop all the way back to RoutineEditor
+                        navController.popBackStack(NavigationRoutes.RoutineEditor.route, inclusive = false)
+                    },
+                    onCancel = {
+                        exerciseToConfigState = null
+                        navController.popBackStack() // Back to ExerciseSelector
+                    },
+                    buttonText = if (isNewExerciseState) "Add to Routine" else "Save",
+                )
+            } ?: run {
+                // No exercise to configure - pop back
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                }
+            }
         }
 
         // Routine Editor - create/edit daily routine
@@ -390,19 +449,26 @@ fun NavGraph(
 
             // Collect dependencies from ViewModel/Koin
             val weightUnit by viewModel.weightUnit.collectAsState()
-            val enableVideo by viewModel.enableVideoPlayback.collectAsState()
 
             RoutineEditorScreen(
                 routineId = routineId,
                 navController = navController,
                 viewModel = viewModel,
-                exerciseRepository = exerciseRepository,
                 weightUnit = weightUnit,
                 kgToDisplay = viewModel::kgToDisplay,
-                displayToKg = viewModel::displayToKg,
-                enableVideoPlayback = enableVideo,
-                exerciseSelectorResult = exerciseSelectorResult,
-                onExerciseSelectorResultConsumed = { exerciseSelectorResult = null },
+                configuredExerciseResult = configuredExerciseResult,
+                isNewExerciseResult = isNewExerciseState,
+                editingIndexResult = editingIndexState,
+                onConfiguredExerciseResultConsumed = {
+                    configuredExerciseResult = null
+                    exerciseToConfigState = null
+                },
+                onNavigateToExerciseConfig = { routineExercise, isNew, editIdx ->
+                    exerciseToConfigState = routineExercise
+                    isNewExerciseState = isNew
+                    editingIndexState = editIdx
+                    navController.navigate(NavigationRoutes.ExerciseConfig.route)
+                },
             )
         }
 

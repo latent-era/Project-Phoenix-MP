@@ -22,8 +22,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.devil.phoenixproject.data.repository.ExerciseRepository
-import com.devil.phoenixproject.data.repository.PersonalRecordRepository
 import com.devil.phoenixproject.domain.model.*
 import com.devil.phoenixproject.presentation.components.ExerciseRowInSuperset
 import com.devil.phoenixproject.presentation.components.ExerciseRowWithConnector
@@ -34,7 +32,6 @@ import com.devil.phoenixproject.presentation.components.SupersetHeader
 import com.devil.phoenixproject.presentation.components.SupersetPickerDialog
 import com.devil.phoenixproject.presentation.navigation.NavigationRoutes
 import com.devil.phoenixproject.ui.theme.SupersetTheme
-import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -57,22 +54,17 @@ fun RoutineEditorScreen(
     routineId: String, // "new" or actual ID
     navController: androidx.navigation.NavController,
     viewModel: com.devil.phoenixproject.presentation.viewmodel.MainViewModel,
-    exerciseRepository: ExerciseRepository,
     weightUnit: WeightUnit,
     kgToDisplay: (Float, WeightUnit) -> Float,
-    displayToKg: (Float, WeightUnit) -> Float,
-    enableVideoPlayback: Boolean,
-    exerciseSelectorResult: Exercise? = null,
-    onExerciseSelectorResultConsumed: () -> Unit = {},
+    configuredExerciseResult: RoutineExercise? = null,
+    isNewExerciseResult: Boolean = true,
+    editingIndexResult: Int? = null,
+    onConfiguredExerciseResultConsumed: () -> Unit = {},
+    onNavigateToExerciseConfig: (RoutineExercise, Boolean, Int?) -> Unit = { _, _, _ -> },
 ) {
     // 1. Initialize State
     var state by remember { mutableStateOf(RoutineEditorState()) }
     var hasInitialized by remember { mutableStateOf(false) }
-
-    // Exercise configuration state - holds exercise being configured (new or edit)
-    var exerciseToConfig by remember { mutableStateOf<RoutineExercise?>(null) }
-    var isNewExercise by remember { mutableStateOf(false) } // true = adding new, false = editing existing
-    var editingIndex by remember { mutableStateOf<Int?>(null) } // index when editing existing
 
     // Menu state for superset and exercise context menus
     var supersetMenuFor by remember { mutableStateOf<String?>(null) } // superset ID showing menu
@@ -114,9 +106,6 @@ fun RoutineEditorScreen(
     // Superset being edited (for add exercise flow)
     var supersetForAddExercise by remember { mutableStateOf<Superset?>(null) }
 
-    // Get PersonalRecordRepository for the bottom sheet
-    val personalRecordRepository: PersonalRecordRepository = koinInject()
-
     // Clear topbar title to allow dynamic title from EnhancedMainScreen
     LaunchedEffect(Unit) {
         viewModel.updateTopBarTitle("")
@@ -140,26 +129,6 @@ fun RoutineEditorScreen(
             )
             hasInitialized = true
         }
-    }
-
-    // Handle exercise selection result from ExerciseSelectorScreen
-    LaunchedEffect(exerciseSelectorResult) {
-        val selectedExercise = exerciseSelectorResult ?: return@LaunchedEffect
-        val newEx = RoutineExercise(
-            id = generateUUID(),
-            exercise = selectedExercise,
-            orderIndex = state.exercises.size,
-            weightPerCableKg = 5f,
-            supersetId = supersetForAddExercise?.id,
-            orderInSuperset = supersetForAddExercise?.let { ss ->
-                state.exercises.filter { it.supersetId == ss.id }.size
-            } ?: 0
-        )
-        exerciseToConfig = newEx
-        isNewExercise = true
-        editingIndex = null
-        supersetForAddExercise = null
-        onExerciseSelectorResultConsumed()
     }
 
     // Drag and Drop State
@@ -199,6 +168,29 @@ fun RoutineEditorScreen(
     // Helper: Update Exercises
     fun updateExercises(newList: List<RoutineExercise>) {
         updateRoutine { it.copy(exercises = newList) }
+    }
+
+    // Handle configured exercise result from ExerciseConfigScreen
+    LaunchedEffect(configuredExerciseResult) {
+        val configured = configuredExerciseResult ?: return@LaunchedEffect
+        if (isNewExerciseResult) {
+            // Correct the order index and superset assignment for new exercises
+            val corrected = configured.copy(
+                orderIndex = state.exercises.size,
+                supersetId = supersetForAddExercise?.id,
+                orderInSuperset = supersetForAddExercise?.let { ss ->
+                    state.exercises.filter { it.supersetId == ss.id }.size
+                } ?: 0
+            )
+            updateExercises(state.exercises + corrected)
+        } else {
+            editingIndexResult?.let { index ->
+                val newList = state.exercises.toMutableList().apply { set(index, configured) }
+                updateExercises(newList)
+            }
+        }
+        supersetForAddExercise = null
+        onConfiguredExerciseResultConsumed()
     }
 
     // Helper: Update Superset
@@ -528,9 +520,11 @@ fun RoutineEditorScreen(
                                                 isSelected = selectedExerciseIds.contains(exercise.id),
                                                 onClick = {
                                                     if (!selectionMode) {
-                                                        exerciseToConfig = exercise
-                                                        isNewExercise = false
-                                                        editingIndex = state.exercises.indexOf(exercise)
+                                                        onNavigateToExerciseConfig(
+                                                            exercise,
+                                                            false,
+                                                            state.exercises.indexOf(exercise)
+                                                        )
                                                     }
                                                 },
                                                 onLongPress = {
@@ -568,9 +562,11 @@ fun RoutineEditorScreen(
                                             kgToDisplay = kgToDisplay,
                                             onClick = {
                                                 if (!selectionMode) {
-                                                    exerciseToConfig = exercise
-                                                    isNewExercise = false
-                                                    editingIndex = state.exercises.indexOf(exercise)
+                                                    onNavigateToExerciseConfig(
+                                                        exercise,
+                                                        false,
+                                                        state.exercises.indexOf(exercise)
+                                                    )
                                                 }
                                             },
                                             onMenuClick = { exerciseMenuFor = exercise.id },
@@ -605,10 +601,12 @@ fun RoutineEditorScreen(
                                             DropdownMenuItem(
                                                 text = { Text("Edit") },
                                                 onClick = {
-                                                    exerciseToConfig = exercise
-                                                    isNewExercise = false
-                                                    editingIndex = state.exercises.indexOf(exercise)
                                                     exerciseMenuFor = null
+                                                    onNavigateToExerciseConfig(
+                                                        exercise,
+                                                        false,
+                                                        state.exercises.indexOf(exercise)
+                                                    )
                                                 },
                                                 leadingIcon = { Icon(Icons.Default.Edit, null) }
                                             )
@@ -668,42 +666,6 @@ fun RoutineEditorScreen(
             )
         }
         }
-    }
-
-    // Exercise Configuration Bottom Sheet
-    exerciseToConfig?.let { exercise ->
-        ExerciseEditBottomSheet(
-            exercise = exercise,
-            weightUnit = weightUnit,
-            enableVideoPlayback = enableVideoPlayback,
-            kgToDisplay = kgToDisplay,
-            displayToKg = displayToKg,
-            exerciseRepository = exerciseRepository,
-            personalRecordRepository = personalRecordRepository,
-            formatWeight = { weight, unit ->
-                val displayWeight = kgToDisplay(weight, unit)
-                if (unit == WeightUnit.LB) "${displayWeight.toInt()} lbs" else "${displayWeight.toInt()} kg"
-            },
-            onSave = { configuredExercise ->
-                if (isNewExercise) {
-                    updateExercises(state.exercises + configuredExercise)
-                } else {
-                    editingIndex?.let { index ->
-                        val newList = state.exercises.toMutableList().apply { set(index, configuredExercise) }
-                        updateExercises(newList)
-                    }
-                }
-                exerciseToConfig = null
-                isNewExercise = false
-                editingIndex = null
-            },
-            onDismiss = {
-                exerciseToConfig = null
-                isNewExercise = false
-                editingIndex = null
-            },
-            buttonText = if (isNewExercise) "Add to Routine" else "Save"
-        )
     }
 
     // Rename Superset Dialog

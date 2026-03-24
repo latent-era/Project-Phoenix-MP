@@ -553,6 +553,10 @@ private fun getScreenTitle(
         // Routine editor (dynamic - uses routine name)
         route.startsWith("routine_editor") -> routineName.ifEmpty { "Edit Routine" }
 
+        // Exercise flow
+        route == NavigationRoutes.ExerciseSelector.route -> "Select Exercise"
+        route == NavigationRoutes.ExerciseConfig.route -> "Configure Exercise"
+
         // Static titles
         route == NavigationRoutes.Badges.route -> "Achievements"
         route == NavigationRoutes.ConnectionLogs.route -> "Connection Logs"

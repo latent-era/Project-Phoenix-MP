@@ -34,6 +34,7 @@ sealed class NavigationRoutes(val route: String) {
     }
 
     object ExerciseSelector : NavigationRoutes("exercise_selector")
+    object ExerciseConfig : NavigationRoutes("exercise_config")
 
     // Premium/Account routes
     object Auth : NavigationRoutes("auth")
