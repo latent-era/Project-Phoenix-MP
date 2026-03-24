@@ -15,6 +15,7 @@ import com.juul.kable.State
 import com.juul.kable.WriteType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -108,6 +109,9 @@ class KableBleConnectionManager(
     /** Active scanning job reference. */
     private var scanJob: Job? = null
 
+    /** Active state observer job — must be cancelled before launching a new one. */
+    private var stateObserverJob: Job? = null
+
     /** Connected device name (for logging). */
     private var connectedDeviceName: String = ""
 
@@ -179,139 +183,161 @@ class KableBleConnectionManager(
             // Track scanned devices locally for filtering logic
             var currentScannedDevices = emptyList<ScannedDevice>()
 
-            scanJob = Scanner {
-                // No specific filters - we'll filter manually
-            }
-                .advertisements
-                .onEach { advertisement ->
-                    // Debug logging for all advertisements
-                    log.d { "RAW ADV: name=${advertisement.name}, id=${advertisement.identifier}, uuids=${advertisement.uuids}, rssi=${advertisement.rssi}" }
-                }
-                .filter { advertisement ->
-                    // Filter by name if available
-                    val name = advertisement.name
-                    if (name != null) {
-                        val isVitruvian = name.startsWith("Vee_", ignoreCase = true) ||
-                                          name.startsWith("VIT", ignoreCase = true) ||
-                                          name.startsWith("Vitruvian", ignoreCase = true)
-                        if (isVitruvian) {
-                            log.i { "Found Vitruvian by name: $name" }
-                        } else {
-                            log.d { "Ignoring device: $name (not Vitruvian)" }
+            scanJob = scope.launch {
+                try {
+                    withTimeoutOrNull(BleConstants.SCAN_TIMEOUT_MS) {
+                        Scanner {
+                            // No specific filters - we'll filter manually
                         }
-                        return@filter isVitruvian
+                            .advertisements
+                            .onEach { advertisement ->
+                                // Debug logging for all advertisements
+                                log.d { "RAW ADV: name=${advertisement.name}, id=${advertisement.identifier}, uuids=${advertisement.uuids}, rssi=${advertisement.rssi}" }
+                            }
+                            .filter { advertisement ->
+                                // Filter by name if available
+                                val name = advertisement.name
+                                if (name != null) {
+                                    val isVitruvian = name.startsWith("Vee_", ignoreCase = true) ||
+                                                      name.startsWith("VIT", ignoreCase = true) ||
+                                                      name.startsWith("Vitruvian", ignoreCase = true)
+                                    if (isVitruvian) {
+                                        log.i { "Found Vitruvian by name: $name" }
+                                    } else {
+                                        log.d { "Ignoring device: $name (not Vitruvian)" }
+                                    }
+                                    return@filter isVitruvian
+                                }
+
+                                // Check for Vitruvian service UUIDs (mServiceUuids)
+                                val serviceUuids = advertisement.uuids
+                                val hasVitruvianServiceUuid = serviceUuids.any { uuid ->
+                                    val uuidStr = uuid.toString().lowercase()
+                                    uuidStr.startsWith("0000fef3") ||
+                                    uuidStr == BleConstants.NUS_SERVICE_UUID_STRING
+                                }
+
+                                if (hasVitruvianServiceUuid) {
+                                    log.i { "Found Vitruvian by service UUID: ${advertisement.identifier}" }
+                                    return@filter true
+                                }
+
+                                // CRITICAL: Check for FEF3 service data
+                                // The Vitruvian device advertises FEF3 in serviceData, not serviceUuids!
+                                // In Kable, serviceData is accessed differently - try to get FEF3 directly
+                                val fef3Uuid = try {
+                                    Uuid.parse("0000fef3-0000-1000-8000-00805f9b34fb")
+                                } catch (_: Exception) {
+                                    null
+                                }
+
+                                val hasVitruvianServiceData = if (fef3Uuid != null) {
+                                    // Try to get data for FEF3 service UUID
+                                    val fef3Data = advertisement.serviceData(fef3Uuid)
+                                    if (fef3Data != null && fef3Data.isNotEmpty()) {
+                                        log.i { "Found Vitruvian by FEF3 serviceData: ${advertisement.identifier}, data size: ${fef3Data.size}" }
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+
+                                hasVitruvianServiceData
+                            }
+                            .onEach { advertisement ->
+                                @Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD") // Needed for iOS where identifier is Uuid
+                                val identifier = advertisement.identifier.toString()
+                                val advertisedName = advertisement.name
+                                val hasRealName = advertisedName != null &&
+                                    (advertisedName.startsWith("Vee_", ignoreCase = true) ||
+                                     advertisedName.startsWith("VIT", ignoreCase = true))
+
+                                // Use name if available, otherwise use identifier as placeholder
+                                val name = advertisedName ?: "Vitruvian ($identifier)"
+
+                                // Skip devices without a real Vitruvian name if we already have one
+                                if (!hasRealName) {
+                                    val alreadyHaveRealDevice = currentScannedDevices.any { existing ->
+                                        existing.name.startsWith("Vee_", ignoreCase = true) ||
+                                        existing.name.startsWith("VIT", ignoreCase = true)
+                                    }
+                                    if (alreadyHaveRealDevice) {
+                                        log.d { "Skipping nameless device $identifier - already have named Vitruvian device" }
+                                        return@onEach
+                                    }
+                                }
+
+                                // Only log if this is a new device
+                                if (!discoveredAdvertisements.containsKey(identifier)) {
+                                    log.d { "Discovered device: $name ($identifier) RSSI: ${advertisement.rssi}" }
+                                    logRepo.info(
+                                        LogEventType.DEVICE_FOUND,
+                                        "Found Vitruvian device",
+                                        name,
+                                        identifier,
+                                        "RSSI: ${advertisement.rssi} dBm"
+                                    )
+                                }
+
+                                // Store advertisement reference
+                                discoveredAdvertisements[identifier] = advertisement
+
+                                // Update scanned devices list
+                                val device = ScannedDevice(
+                                    name = name,
+                                    address = identifier,
+                                    rssi = advertisement.rssi
+                                )
+                                var devices = currentScannedDevices.toMutableList()
+
+                                // If this is a real-named device, remove any placeholder devices first
+                                // (same physical device can advertise with different identifiers)
+                                if (hasRealName) {
+                                    devices = devices.filter { existing ->
+                                        existing.name.startsWith("Vee_", ignoreCase = true) ||
+                                        existing.name.startsWith("VIT", ignoreCase = true) ||
+                                        existing.address == identifier  // Keep if same address (will update below)
+                                    }.toMutableList()
+                                }
+
+                                val existingIndex = devices.indexOfFirst { it.address == identifier }
+                                if (existingIndex >= 0) {
+                                    devices[existingIndex] = device
+                                } else {
+                                    devices.add(device)
+                                }
+                                val sorted = devices.sortedByDescending { it.rssi }
+                                currentScannedDevices = sorted
+                                onScannedDevicesChanged(sorted)
+                            }
+                            .catch { e ->
+                                log.e { "Scan error: ${e.message}" }
+                                logRepo.error(LogEventType.ERROR, "BLE scan failed", details = e.message)
+                                // Return to Disconnected instead of Error for scan failures - user can retry
+                                reportConnectionState(ConnectionState.Disconnected)
+                            }
+                            .collect {}
                     }
-
-                    // Check for Vitruvian service UUIDs (mServiceUuids)
-                    val serviceUuids = advertisement.uuids
-                    val hasVitruvianServiceUuid = serviceUuids.any { uuid ->
-                        val uuidStr = uuid.toString().lowercase()
-                        uuidStr.startsWith("0000fef3") ||
-                        uuidStr == BleConstants.NUS_SERVICE_UUID_STRING
-                    }
-
-                    if (hasVitruvianServiceUuid) {
-                        log.i { "Found Vitruvian by service UUID: ${advertisement.identifier}" }
-                        return@filter true
-                    }
-
-                    // CRITICAL: Check for FEF3 service data
-                    // The Vitruvian device advertises FEF3 in serviceData, not serviceUuids!
-                    // In Kable, serviceData is accessed differently - try to get FEF3 directly
-                    val fef3Uuid = try {
-                        Uuid.parse("0000fef3-0000-1000-8000-00805f9b34fb")
-                    } catch (_: Exception) {
-                        null
-                    }
-
-                    val hasVitruvianServiceData = if (fef3Uuid != null) {
-                        // Try to get data for FEF3 service UUID
-                        val fef3Data = advertisement.serviceData(fef3Uuid)
-                        if (fef3Data != null && fef3Data.isNotEmpty()) {
-                            log.i { "Found Vitruvian by FEF3 serviceData: ${advertisement.identifier}, data size: ${fef3Data.size}" }
-                            true
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-
-                    hasVitruvianServiceData
-                }
-                .onEach { advertisement ->
-                    @Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD") // Needed for iOS where identifier is Uuid
-                    val identifier = advertisement.identifier.toString()
-                    val advertisedName = advertisement.name
-                    val hasRealName = advertisedName != null &&
-                        (advertisedName.startsWith("Vee_", ignoreCase = true) ||
-                         advertisedName.startsWith("VIT", ignoreCase = true))
-
-                    // Use name if available, otherwise use identifier as placeholder
-                    val name = advertisedName ?: "Vitruvian ($identifier)"
-
-                    // Skip devices without a real Vitruvian name if we already have one
-                    if (!hasRealName) {
-                        val alreadyHaveRealDevice = currentScannedDevices.any { existing ->
-                            existing.name.startsWith("Vee_", ignoreCase = true) ||
-                            existing.name.startsWith("VIT", ignoreCase = true)
-                        }
-                        if (alreadyHaveRealDevice) {
-                            log.d { "Skipping nameless device $identifier - already have named Vitruvian device" }
-                            return@onEach
-                        }
-                    }
-
-                    // Only log if this is a new device
-                    if (!discoveredAdvertisements.containsKey(identifier)) {
-                        log.d { "Discovered device: $name ($identifier) RSSI: ${advertisement.rssi}" }
+                    // withTimeoutOrNull returned null = timeout reached, auto-stop scan
+                    if (lastReportedState == ConnectionState.Scanning) {
+                        log.w { "Scan timeout reached (${BleConstants.SCAN_TIMEOUT_MS}ms)" }
                         logRepo.info(
-                            LogEventType.DEVICE_FOUND,
-                            "Found Vitruvian device",
-                            name,
-                            identifier,
-                            "RSSI: ${advertisement.rssi} dBm"
+                            LogEventType.SCAN_STOP,
+                            "Scan auto-stopped after timeout",
+                            details = "Found ${discoveredAdvertisements.size} device(s) in ${BleConstants.SCAN_TIMEOUT_MS}ms"
                         )
+                        reportConnectionState(ConnectionState.Disconnected)
                     }
-
-                    // Store advertisement reference
-                    discoveredAdvertisements[identifier] = advertisement
-
-                    // Update scanned devices list
-                    val device = ScannedDevice(
-                        name = name,
-                        address = identifier,
-                        rssi = advertisement.rssi
-                    )
-                    var devices = currentScannedDevices.toMutableList()
-
-                    // If this is a real-named device, remove any placeholder devices first
-                    // (same physical device can advertise with different identifiers)
-                    if (hasRealName) {
-                        devices = devices.filter { existing ->
-                            existing.name.startsWith("Vee_", ignoreCase = true) ||
-                            existing.name.startsWith("VIT", ignoreCase = true) ||
-                            existing.address == identifier  // Keep if same address (will update below)
-                        }.toMutableList()
-                    }
-
-                    val existingIndex = devices.indexOfFirst { it.address == identifier }
-                    if (existingIndex >= 0) {
-                        devices[existingIndex] = device
-                    } else {
-                        devices.add(device)
-                    }
-                    val sorted = devices.sortedByDescending { it.rssi }
-                    currentScannedDevices = sorted
-                    onScannedDevicesChanged(sorted)
-                }
-                .catch { e ->
-                    log.e { "Scan error: ${e.message}" }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    log.e(e) { "Scan error: ${e.message}" }
                     logRepo.error(LogEventType.ERROR, "BLE scan failed", details = e.message)
-                    // Return to Disconnected instead of Error for scan failures - user can retry
                     reportConnectionState(ConnectionState.Disconnected)
                 }
-                .launchIn(scope)
+            }
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -443,8 +469,11 @@ class KableBleConnectionManager(
             // platform-specific AndroidPeripheral cast
             peripheral = Peripheral(advertisement)
 
+            // Cancel any stale state observer before launching a new one (H2 fix)
+            stateObserverJob?.cancel()
+
             // Observe connection state
-            peripheral?.state
+            stateObserverJob = peripheral?.state
                 ?.onEach { state ->
                     when (state) {
                         is State.Connecting -> {
@@ -465,8 +494,25 @@ class KableBleConnectionManager(
                                 deviceAddress = device.address,
                                 hardwareModel = HardwareDetection.detectModel(device.name)
                             ))
-                            // Launch onDeviceReady in a coroutine since we're in a non-suspend context
-                            scope.launch { onDeviceReady() }
+                            // Launch onDeviceReady with error handling (H3 fix)
+                            scope.launch {
+                                try {
+                                    onDeviceReady()
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (e: Exception) {
+                                    log.e(e) { "onDeviceReady failed: ${e.message}" }
+                                    logRepo.error(
+                                        LogEventType.ERROR,
+                                        "Device initialization failed",
+                                        connectedDeviceName,
+                                        connectedDeviceAddress,
+                                        e.message
+                                    )
+                                    cleanupExistingConnection()
+                                    reportConnectionState(ConnectionState.Disconnected)
+                                }
+                            }
                         }
                         is State.Disconnecting -> {
                             log.d { "Disconnecting from device" }
@@ -915,6 +961,10 @@ class KableBleConnectionManager(
             connectedDeviceName,
             connectedDeviceAddress
         )
+
+        // Cancel stale state observer to prevent ghost callbacks (H2 fix)
+        stateObserverJob?.cancel()
+        stateObserverJob = null
 
         // Cancel all polling jobs (matches disconnect() behavior)
         pollingEngine.stopAll()

@@ -1,25 +1,34 @@
 package com.devil.phoenixproject.presentation.components
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 /**
  * BLE and notification permissions required for the app.
@@ -115,10 +124,43 @@ fun RequireBlePermissions(
             }
         }
         is BlePermissionState.Denied -> {
+            val activity = context as? Activity
+
+            // Detect permanent denial: shouldShowRequestPermissionRationale returns false
+            // when the user checked "Don't ask again" or when the system won't show the dialog
+            val canRetry = remember(permissionState) {
+                activity != null && BlePermissions.getRequiredPermissions().any { permission ->
+                    ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
+                }
+            }
+
+            // Re-check permissions when returning from Settings
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        if (BlePermissions.arePermissionsGranted(context)) {
+                            permissionState = BlePermissionState.Granted
+                        }
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
             PermissionScreenTheme {
                 BlePermissionDeniedScreen(
+                    canRetry = canRetry,
                     onRetry = {
                         permissionLauncher.launch(BlePermissions.getRequiredPermissions().toTypedArray())
+                    },
+                    onOpenSettings = {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                        }
+                        context.startActivity(intent)
                     }
                 )
             }
@@ -199,10 +241,18 @@ private fun BlePermissionRequestScreen(
 
 /**
  * Screen shown when BLE permissions have been denied.
+ *
+ * @param canRetry true if the system permission dialog can still be shown (user has not
+ *   permanently denied). false if the user selected "Don't ask again" or the OS won't
+ *   show the dialog — in that case we direct them to app Settings instead.
+ * @param onRetry Re-request permissions via the system dialog.
+ * @param onOpenSettings Open the app's Settings page so the user can toggle permissions manually.
  */
 @Composable
 private fun BlePermissionDeniedScreen(
-    onRetry: () -> Unit
+    canRetry: Boolean,
+    onRetry: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -216,7 +266,7 @@ private fun BlePermissionDeniedScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Warning,
+                imageVector = if (canRetry) Icons.Default.Warning else Icons.Default.Settings,
                 contentDescription = null,
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.error
@@ -234,7 +284,11 @@ private fun BlePermissionDeniedScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Bluetooth permission is required to connect to your Vitruvian Trainer. Please grant the permission to continue, or enable it in your device's Settings app.",
+                text = if (canRetry) {
+                    "Bluetooth permission is required to connect to your Vitruvian Trainer. Please grant the permission to continue."
+                } else {
+                    "Bluetooth permission has been permanently denied. Please enable it in your device's Settings to use Project Phoenix."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -242,23 +296,48 @@ private fun BlePermissionDeniedScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(
-                onClick = onRetry,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                Text(
-                    text = "Try Again",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            if (canRetry) {
+                Button(
+                    onClick = onRetry,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = "Try Again",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                Button(
+                    onClick = onOpenSettings,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Open Settings",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "If the permission dialog doesn't appear, you may need to enable Bluetooth permissions in your device's Settings > Apps > Project Phoenix > Permissions.",
+                text = if (canRetry) {
+                    "If the permission dialog doesn't appear, you may need to enable Bluetooth permissions in your device's Settings > Apps > Project Phoenix > Permissions."
+                } else {
+                    "Navigate to Permissions and enable Bluetooth access, then return here. The app will detect the change automatically."
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
