@@ -264,7 +264,7 @@ private fun WeeklyComplianceStrip(
                 Icon(
                     Icons.Default.LocalFireDepartment,
                     contentDescription = "Streak",
-                    tint = Color(0xFFFF6B00),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(Modifier.width(4.dp))

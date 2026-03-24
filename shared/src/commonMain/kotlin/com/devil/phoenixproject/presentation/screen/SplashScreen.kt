@@ -47,7 +47,7 @@ private val DeepNavy = Color(0xFF1E293B)
  * - Animated fire glow behind the logo
  * - Rising ember particles
  * - Pulsing phoenix glow
- * - "Project Phoenix" text fade-in
+ * - "Talos Fit" text fade-in
  */
 @Composable
 fun SplashScreen(
@@ -224,9 +224,9 @@ fun SplashScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // "Project Phoenix" text
+                // "Talos Fit" text
                 Text(
-                    text = "PROJECT PHOENIX",
+                    text = "TALOS FIT",
                     style = TextStyle(
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
@@ -393,7 +393,7 @@ fun SimpleSplashScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "PROJECT PHOENIX",
+                text = "TALOS FIT",
                 style = TextStyle(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,

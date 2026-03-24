@@ -24,15 +24,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 // Profile color palette
+/**
+ * Profile color palette. The first entry is a placeholder — composable call sites
+ * should prefer `MaterialTheme.colorScheme.primary` for the default profile colour.
+ */
 val ProfileColors = listOf(
-    Color(0xFF3B82F6), // Blue
+    Color(0xFF3B82F6), // Blue (default – theme primary preferred at call site)
     Color(0xFF10B981), // Green
     Color(0xFFF59E0B), // Amber
     Color(0xFFEF4444), // Red
     Color(0xFF8B5CF6), // Purple
     Color(0xFFEC4899), // Pink
     Color(0xFF06B6D4), // Cyan
-    Color(0xFFF97316)  // Orange
+    Color(0xFF14B8A6)  // Teal (was Orange 0xFFF97316)
 )
 
 // Constant for profile color count to avoid magic numbers

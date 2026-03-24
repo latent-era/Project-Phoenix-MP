@@ -192,7 +192,7 @@ fun EulaScreen(
 
             // Cannot proceed without accepting
             Text(
-                text = "You must accept these terms to use Project Phoenix.",
+                text = "You must accept these terms to use Talos Fit.",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = TextSecondary,
                     textAlign = TextAlign.Center
@@ -219,7 +219,7 @@ private fun EulaContent() {
                     append("App Name: ")
                 }
                 withStyle(SpanStyle(color = TextPrimary, fontWeight = FontWeight.Bold)) {
-                    append("Project Phoenix")
+                    append("Talos Fit")
                 }
                 append("\n")
                 withStyle(SpanStyle(color = TextSecondary)) {
@@ -238,7 +238,7 @@ private fun EulaContent() {
         EulaSection(
             number = "1",
             title = "MEDICAL WARNING AND DISCLAIMER",
-            content = """CONSULT A PHYSICIAN BEFORE USE. The content and functionality provided by Project Phoenix are for informational and entertainment purposes only. You should consult your physician or other health care professional before starting this or any other fitness program to determine if it is right for your needs. Do not use Project Phoenix if your physician or health care provider advises against it. If you experience faintness, dizziness, pain, or shortness of breath at any time while exercising, you should stop immediately.""",
+            content = """CONSULT A PHYSICIAN BEFORE USE. The content and functionality provided by Talos Fit are for informational and entertainment purposes only. You should consult your physician or other health care professional before starting this or any other fitness program to determine if it is right for your needs. Do not use Talos Fit if your physician or health care provider advises against it. If you experience faintness, dizziness, pain, or shortness of breath at any time while exercising, you should stop immediately.""",
             isWarning = true
         )
 
@@ -250,14 +250,14 @@ private fun EulaContent() {
             isWarning = true
         )
         Text(
-            text = "READ CAREFULLY: PROJECT PHOENIX CONTROLS THIRD-PARTY HARDWARE CAPABLE OF GENERATING SIGNIFICANT PHYSICAL FORCE.",
+            text = "READ CAREFULLY: TALOS FIT CONTROLS THIRD-PARTY HARDWARE CAPABLE OF GENERATING SIGNIFICANT PHYSICAL FORCE.",
             style = MaterialTheme.typography.bodyMedium.copy(
                 color = WarningRed,
                 fontWeight = FontWeight.Bold
             )
         )
         Text(
-            text = """By using Project Phoenix, you acknowledge that resistance training involves inherent risks of serious injury, permanent disability, paralysis, and death. You explicitly acknowledge that software-controlled resistance equipment carries unique risks, including but not limited to:""",
+            text = """By using Talos Fit, you acknowledge that resistance training involves inherent risks of serious injury, permanent disability, paralysis, and death. You explicitly acknowledge that software-controlled resistance equipment carries unique risks, including but not limited to:""",
             style = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary)
         )
         BulletPoint("Sudden Resistance Changes: Software bugs, Bluetooth latency, or connection drops may cause the equipment to apply sudden, unexpected force or fail to release force when required.")
@@ -277,7 +277,7 @@ private fun EulaContent() {
             content = null
         )
         Text(
-            text = "Project Phoenix is an independent, community-developed project. IT IS NOT AFFILIATED WITH, ENDORSED BY, AUTHORIZED BY, OR SUPPORTED BY VITRUVIAN INVESTMENTS PTY LTD (IN LIQUIDATION), MANAGED BY MERCHANTS ADVISORY, OR ANY OTHER EQUIPMENT MANUFACTURER.",
+            text = "Talos Fit is an independent, community-developed project. IT IS NOT AFFILIATED WITH, ENDORSED BY, AUTHORIZED BY, OR SUPPORTED BY VITRUVIAN INVESTMENTS PTY LTD (IN LIQUIDATION), MANAGED BY MERCHANTS ADVISORY, OR ANY OTHER EQUIPMENT MANUFACTURER.",
             style = MaterialTheme.typography.bodyMedium.copy(
                 color = TextPrimary,
                 fontWeight = FontWeight.Bold

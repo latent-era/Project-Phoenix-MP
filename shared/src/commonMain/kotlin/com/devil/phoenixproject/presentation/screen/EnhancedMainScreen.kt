@@ -176,16 +176,11 @@ fun EnhancedMainScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            // Subtitle - always show "Project Phoenix" with gradient
+                            // Subtitle - always show "Talos Fit"
                             Text(
-                                text = "Project Phoenix",
+                                text = "Talos Fit",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            Color(0xFFF97316), // Orange
-                                            Color(0xFFEF4444)  // Red
-                                        )
-                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Medium
                                 )
                             )
@@ -472,7 +467,7 @@ private fun ConnectionStatusIndicator(
     }
 
     // Static colors for non-connecting states
-    val blueColor = Color(0xFF3B82F6)
+    val blueColor = MaterialTheme.colorScheme.primary
     val greenColor = Color(0xFF22C55E)
     val redColor = Color(0xFFEF4444)
 
@@ -567,6 +562,6 @@ private fun getScreenTitle(
         route == NavigationRoutes.ActiveWorkout.route -> "Workout"
 
         // Fallback
-        else -> "Project Phoenix"
+        else -> "Talos Fit"
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -143,19 +144,17 @@ fun SettingsTab(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .shadow(8.dp, RoundedCornerShape(20.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(Color(0xFFFFD700), Color(0xFFFFA500))
-                                ),
-                                RoundedCornerShape(20.dp)
+                            .border(
+                                width = 1.5.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(12.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Favorite,
                             contentDescription = "Support the developer",
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -204,21 +203,19 @@ fun SettingsTab(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp) // Material 3 Expressive: Larger (was 40dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp)) // Material 3 Expressive: More shadow, more rounded (was 16dp)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF8B5CF6), Color(0xFF9333EA))
-                            ),
-                            RoundedCornerShape(20.dp) // Material 3 Expressive: More rounded (was 16dp)
+                        .size(48.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Scale,
                         contentDescription = "Weight unit settings",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp) // Material 3 Expressive: Larger icon
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
@@ -300,19 +297,17 @@ fun SettingsTab(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF6366F1), Color(0xFFA855F7))
-                            ),
-                            RoundedCornerShape(20.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Palette,
                         contentDescription = "Appearance settings",
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -374,21 +369,19 @@ fun SettingsTab(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp) // Material 3 Expressive: Larger (was 40dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp)) // Material 3 Expressive: More shadow, more rounded (was 16dp)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF6366F1), Color(0xFF8B5CF6))
-                            ),
-                            RoundedCornerShape(20.dp) // Material 3 Expressive: More rounded (was 16dp)
+                        .size(48.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Tune,
                         contentDescription = "Advanced settings",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp) // Material 3 Expressive: Larger icon
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
@@ -603,25 +596,17 @@ fun SettingsTab(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = if (discoModeActive) {
-                                    // Rainbow gradient when disco mode is active
-                                    listOf(Color(0xFFFF0000), Color(0xFFFF7F00), Color(0xFFFFFF00),
-                                           Color(0xFF00FF00), Color(0xFF0000FF), Color(0xFF8B00FF))
-                                } else {
-                                    listOf(Color(0xFF3B82F6), Color(0xFF6366F1))
-                                }
-                            ),
-                            RoundedCornerShape(20.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.ColorLens,
                         contentDescription = "LED color scheme",
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -765,21 +750,19 @@ fun SettingsTab(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp) // Material 3 Expressive: Larger (was 40dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp)) // Material 3 Expressive: More shadow, more rounded (was 16dp)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFFF97316), Color(0xFFEF4444))
-                            ),
-                            RoundedCornerShape(20.dp) // Material 3 Expressive: More rounded (was 16dp)
+                        .size(48.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.DeleteForever,
                         contentDescription = "Clear workout history",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp) // Material 3 Expressive: Larger icon
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
@@ -893,19 +876,17 @@ fun SettingsTab(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFFFFD700), Color(0xFFFFA500))
-                            ),
-                            RoundedCornerShape(20.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.MilitaryTech,
                         contentDescription = "Achievements",
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -1070,25 +1051,19 @@ fun SettingsTab(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp) // Material 3 Expressive: Larger (was 40dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp)) // Material 3 Expressive: More shadow, more rounded (was 16dp)
-                        .background(
-                            Brush.linearGradient(
-                                colors = if (simulatorModeUnlocked) {
-                                    listOf(Color(0xFF9333EA), Color(0xFF4F46E5)) // Purple gradient when unlocked
-                                } else {
-                                    listOf(Color(0xFFF59E0B), Color(0xFFEF4444))
-                                }
-                            ),
-                            RoundedCornerShape(20.dp) // Material 3 Expressive: More rounded (was 16dp)
+                        .size(48.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         if (simulatorModeUnlocked) Icons.Default.Code else Icons.Default.BugReport,
                         contentDescription = "Developer Tools",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp) // Material 3 Expressive: Larger icon
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
@@ -1234,21 +1209,19 @@ fun SettingsTab(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp) // Material 3 Expressive: Larger (was 40dp)
-                        .shadow(8.dp, RoundedCornerShape(20.dp)) // Material 3 Expressive: More shadow, more rounded (was 16dp)
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF22C55E), Color(0xFF3B82F6))
-                            ),
-                            RoundedCornerShape(20.dp) // Material 3 Expressive: More rounded (was 16dp)
+                        .size(48.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Info,
                         contentDescription = "App information",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp) // Material 3 Expressive: Larger icon
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))

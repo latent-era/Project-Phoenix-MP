@@ -307,7 +307,7 @@ class MainViewModel constructor(
 
     // ===== Top Bar State (stays here - pure UI scaffolding) =====
 
-    private val _topBarTitle = MutableStateFlow("Project Phoenix")
+    private val _topBarTitle = MutableStateFlow("Talos Fit")
     val topBarTitle: StateFlow<String> = _topBarTitle.asStateFlow()
 
     fun updateTopBarTitle(title: String) {
