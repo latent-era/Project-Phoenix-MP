@@ -1,6 +1,7 @@
 package com.devil.phoenixproject.data.sync
 
 import co.touchlab.kermit.Logger
+import com.devil.phoenixproject.data.sync.talos.TalosSyncService
 import com.devil.phoenixproject.util.ConnectivityChecker
 import com.devil.phoenixproject.util.withPlatformLock
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,8 @@ import kotlin.time.Clock
  */
 class SyncTriggerManager(
     private val syncManager: SyncManager,
-    private val connectivityChecker: ConnectivityChecker
+    private val connectivityChecker: ConnectivityChecker,
+    private val talosSyncService: TalosSyncService? = null,
 ) {
     companion object {
         private const val THROTTLE_MILLIS = 5 * 60 * 1000L // 5 minutes
@@ -48,6 +50,13 @@ class SyncTriggerManager(
     suspend fun onWorkoutCompleted() {
         Logger.d { "SyncTrigger: Workout completed, attempting sync" }
         attemptSync(bypassThrottle = true)
+
+        // Sync to Talos VPS (independent, best-effort)
+        try {
+            talosSyncService?.syncLatestWorkout()
+        } catch (e: Exception) {
+            Logger.w { "SyncTrigger: Talos sync failed (non-blocking): ${e.message}" }
+        }
     }
 
     /**
