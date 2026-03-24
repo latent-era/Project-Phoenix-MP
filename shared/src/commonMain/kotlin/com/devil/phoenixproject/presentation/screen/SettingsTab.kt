@@ -199,9 +199,10 @@ fun SettingsTab(
                                     syncResult = null
                                     val result = talosSyncService.syncAllWorkouts()
                                     syncResult = if (result.isSuccess) {
-                                        "Synced ${result.getOrNull()} sessions"
+                                        val count = result.getOrNull() ?: 0
+                                        if (count == 0) "No sessions found in database" else "Synced $count sessions to VPS"
                                     } else {
-                                        "Sync failed: ${result.exceptionOrNull()?.message}"
+                                        "Error: ${result.exceptionOrNull()?.message}"
                                     }
                                     isSyncing = false
                                 }

@@ -18,7 +18,8 @@ class TalosApiClient(private val config: TalosConfig) {
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
-        encodeDefaults = true
+        encodeDefaults = false  // Don't serialize null fields — Zod .optional() expects missing, not null
+        explicitNulls = false   // Omit null values from JSON output
     }
 
     private val httpClient = HttpClient {
@@ -55,8 +56,9 @@ class TalosApiClient(private val config: TalosConfig) {
                 Result.success(body)
             } else {
                 val statusCode = response.status.value
-                Logger.w { "Talos sync failed with HTTP $statusCode" }
-                Result.failure(Exception("Talos sync failed: HTTP $statusCode"))
+                val errorBody = try { response.body<String>() } catch (_: Exception) { "no body" }
+                Logger.w { "Talos sync failed HTTP $statusCode: $errorBody" }
+                Result.failure(Exception("HTTP $statusCode: $errorBody"))
             }
         } catch (e: Exception) {
             Logger.w { "Talos sync error: ${e.message}" }

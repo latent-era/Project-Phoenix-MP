@@ -59,14 +59,17 @@ class TalosSyncService(
      * Returns the number of sessions synced.
      */
     suspend fun syncAllWorkouts(): Result<Int> {
+        Logger.i { "TalosSync: syncAllWorkouts called. isPaired=${config.isPaired}, token=${config.deviceToken?.take(20)}..." }
         if (!config.isPaired) {
             return Result.failure(Exception("Not paired with VPS"))
         }
 
         return try {
+            Logger.i { "TalosSync: Fetching sessions from DB..." }
             val allSessions = workoutRepository.getRecentSessionsSync(limit = 10000)
+            Logger.i { "TalosSync: Got ${allSessions.size} sessions from DB" }
             if (allSessions.isEmpty()) {
-                Logger.d { "TalosSync: No sessions to sync" }
+                Logger.w { "TalosSync: DB returned 0 sessions — this is unexpected if workouts are visible in the app" }
                 return Result.success(0)
             }
 
