@@ -2,6 +2,7 @@ package com.devil.phoenixproject.presentation.screen
 
 import com.devil.phoenixproject.presentation.components.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -91,8 +92,9 @@ fun RoutineOverviewScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showStopConfirmation = true },
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp),
                 icon = { Icon(Icons.Default.Close, "Stop") },
                 text = { Text("Stop") }
             )
@@ -102,14 +104,7 @@ fun RoutineOverviewScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    )
-                )
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Horizontal pager for exercises
             HorizontalPager(

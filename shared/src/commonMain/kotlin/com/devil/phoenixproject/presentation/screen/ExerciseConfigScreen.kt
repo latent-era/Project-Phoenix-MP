@@ -504,7 +504,9 @@ fun ExerciseConfigScreen(
 
         // Bottom actions
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.small)
         ) {
             OutlinedButton(

@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -383,18 +384,31 @@ fun EnhancedMainScreen(
             if (showExitRoutineConfirmation) {
                 AlertDialog(
                     onDismissRequest = { showExitRoutineConfirmation = false },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(12.dp),
                     title = { Text("Exit Routine?") },
                     text = { Text("Progress will be saved.") },
                     confirmButton = {
-                        Button(onClick = {
-                            showExitRoutineConfirmation = false
-                            viewModel.exitRoutineFlow()
-                            navController.navigateUp()
-                        }) { Text("Exit") }
+                        Button(
+                            onClick = {
+                                showExitRoutineConfirmation = false
+                                viewModel.exitRoutineFlow()
+                                navController.navigateUp()
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            )
+                        ) { Text("Exit") }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showExitRoutineConfirmation = false }) {
-                            Text("Cancel")
+                        OutlinedButton(
+                            onClick = { showExitRoutineConfirmation = false },
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 )
