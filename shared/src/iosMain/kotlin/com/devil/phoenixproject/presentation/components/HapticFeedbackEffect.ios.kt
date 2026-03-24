@@ -12,8 +12,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import platform.AVFAudio.AVAudioPlayer
 import platform.AVFAudio.AVAudioSession
-import platform.AVFAudio.AVAudioSessionCategoryAmbient
+import platform.AVFAudio.AVAudioSessionCategoryOptionDuckOthers
 import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
+import platform.AVFAudio.AVAudioSessionCategoryPlayback
 import platform.AVFAudio.AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation
 import platform.AVFAudio.setActive
 import platform.Foundation.NSBundle
@@ -75,11 +76,12 @@ private class IosSoundManager {
     private fun setupAudioSession() {
         try {
             val session = AVAudioSession.sharedInstance()
-            // Use Ambient category with MixWithOthers to play alongside music
-            // This ensures our sounds don't interrupt user's music playback
+            // Use Playback category with DuckOthers + MixWithOthers:
+            // - DuckOthers: temporarily lowers music volume when our sounds play
+            // - MixWithOthers: doesn't pause/stop the music, just ducks it
             session.setCategory(
-                AVAudioSessionCategoryAmbient,
-                AVAudioSessionCategoryOptionMixWithOthers,
+                AVAudioSessionCategoryPlayback,
+                AVAudioSessionCategoryOptionDuckOthers or AVAudioSessionCategoryOptionMixWithOthers,
                 null
             )
             session.setActive(true, null)

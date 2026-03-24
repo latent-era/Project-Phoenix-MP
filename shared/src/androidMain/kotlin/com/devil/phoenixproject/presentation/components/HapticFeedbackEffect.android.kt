@@ -3,6 +3,8 @@ package com.devil.phoenixproject.presentation.components
 import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.os.Build
@@ -166,6 +168,23 @@ private fun playSound(
 ) {
     // ERROR event has no sound
     if (event is HapticEvent.ERROR) return
+
+    // Request transient audio focus with ducking — lowers music volume while our sound plays
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    val audioAttributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_GAME)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .build()
+    val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        .setAudioAttributes(audioAttributes)
+        .setOnAudioFocusChangeListener { }
+        .build()
+    audioManager.requestAudioFocus(focusRequest)
+
+    // Schedule focus release after sound plays (most sounds are under 2 seconds)
+    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+        audioManager.abandonAudioFocusRequest(focusRequest)
+    }, 2000)
 
     // Fire OS: Always use MediaPlayer (SoundPool has volume bug)
     if (DeviceInfo.isFireOS()) {
