@@ -220,7 +220,7 @@ fun TrainingCyclesScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(20.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Active Cycle Section
@@ -295,12 +295,9 @@ fun TrainingCyclesScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "ALL CYCLES",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.5.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "All Cycles",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
                         )
                         TextButton(onClick = { showCreationSheet = true }) {
                             Icon(
@@ -877,7 +874,7 @@ private fun ActiveCycleCard(
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
-                                Text("Start Workout")
+                                Text("Start")
                             }
                         } else {
                             OutlinedButton(
@@ -909,7 +906,7 @@ private fun ActiveCycleCard(
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
-                                Text("Start Workout")
+                                Text("Start")
                             }
                         } else {
                             OutlinedButton(

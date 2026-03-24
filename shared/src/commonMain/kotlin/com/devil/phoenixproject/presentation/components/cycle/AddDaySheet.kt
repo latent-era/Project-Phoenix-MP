@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.devil.phoenixproject.domain.model.Routine
 
@@ -52,12 +53,14 @@ fun AddDaySheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Quick action: Rest day button
-            FilledTonalButton(
+            Button(
                 onClick = {
                     onAddRestDay()
                     onDismiss()
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White)
             ) {
                 Icon(
                     imageVector = Icons.Default.NightsStay,
