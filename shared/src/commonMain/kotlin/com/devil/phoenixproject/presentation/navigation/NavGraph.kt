@@ -376,7 +376,13 @@ fun NavGraph(
         }
 
         // Exercise Selector - full screen exercise picker
-        composable(route = NavigationRoutes.ExerciseSelector.route) {
+        composable(
+            route = NavigationRoutes.ExerciseSelector.route,
+            enterTransition = { slideIntoContainer(towards = AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(300)) },
+            exitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(300)) },
+            popEnterTransition = { slideIntoContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) },
+            popExitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) },
+        ) {
             val enableVideo by viewModel.enableVideoPlayback.collectAsState()
 
             ExerciseSelectorScreen(
@@ -401,7 +407,13 @@ fun NavGraph(
         }
 
         // Exercise Config - full screen exercise configuration
-        composable(route = NavigationRoutes.ExerciseConfig.route) {
+        composable(
+            route = NavigationRoutes.ExerciseConfig.route,
+            enterTransition = { slideIntoContainer(towards = AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(300)) },
+            exitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(300)) },
+            popEnterTransition = { slideIntoContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) },
+            popExitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) },
+        ) {
             val weightUnit by viewModel.weightUnit.collectAsState()
             val enableVideo by viewModel.enableVideoPlayback.collectAsState()
 
@@ -423,8 +435,9 @@ fun NavGraph(
                         // Store configured result for RoutineEditor to consume
                         configuredExerciseResult = configuredExercise
                         exerciseToConfigState = null
-                        // Pop all the way back to RoutineEditor
-                        navController.popBackStack(NavigationRoutes.RoutineEditor.route, inclusive = false)
+                        // Pop ExerciseConfig + ExerciseSelector to land on RoutineEditor
+                        navController.popBackStack() // pop ExerciseConfig
+                        navController.popBackStack() // pop ExerciseSelector → RoutineEditor
                     },
                     onCancel = {
                         exerciseToConfigState = null
