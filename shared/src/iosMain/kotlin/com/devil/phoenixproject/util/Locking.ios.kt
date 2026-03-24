@@ -3,11 +3,20 @@ package com.devil.phoenixproject.util
 import platform.Foundation.NSRecursiveLock
 
 /**
- * Global recursive lock for iOS.
+ * iOS implementation uses a single global NSRecursiveLock instead of per-object locks.
  *
- * NSRecursiveLock is used so that nested calls from the same thread do not deadlock.
- * A single global instance is intentional: per-object lock maps would leak memory
- * because Kotlin/Native has no weak-reference-based cleanup for the map keys.
+ * Rationale: Per-object locking via WeakReference map causes memory leaks on K/N
+ * because WeakReference<NSRecursiveLock> prevents garbage collection of the lock map entries.
+ *
+ * Trade-off: All withPlatformLock callers are serialized against each other.
+ * This is acceptable for beta because BLE commands and DB writes are already
+ * serialized by their respective layers. Monitor for jank if adding high-frequency callers.
+ *
+ * NSRecursiveLock (rather than NSLock) is chosen so that nested calls from the same
+ * thread do not deadlock -- e.g., a BLE write callback that triggers a DB write
+ * within the same call stack.
+ *
+ * TODO(v0.9.0): Investigate @Synchronized annotation or K/N 2.x weak reference improvements.
  */
 @PublishedApi
 internal val globalLock = NSRecursiveLock()
