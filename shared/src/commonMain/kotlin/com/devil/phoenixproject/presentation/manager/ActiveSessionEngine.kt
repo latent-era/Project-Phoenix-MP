@@ -28,6 +28,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -172,7 +173,9 @@ class ActiveSessionEngine(
 
         // #4: Handle activity state collector for auto-start functionality
         scope.launch {
+            // handleState is a StateFlow — use try-catch in collect body (SharedFlow.catch is no-op)
             bleRepository.handleState.collect { activityState ->
+                try {
                 val params = coordinator._workoutParameters.value
                 val currentState = coordinator._workoutState.value
                 val isIdle = currentState is WorkoutState.Idle
@@ -218,12 +221,17 @@ class ActiveSessionEngine(
 
                 // Track handle activity state for UI
                 coordinator.currentHandleState = activityState
+                } catch (e: Exception) {
+                    Logger.e(e) { "handleState collector error" }
+                }
             }
         }
 
         // #5: Issue #98: Deload event collector for firmware-based auto-stop detection
         scope.launch {
-            bleRepository.deloadOccurredEvents.collect {
+            bleRepository.deloadOccurredEvents
+                .catch { e -> Logger.e(e) { "deloadOccurredEvents collector error" } }
+                .collect {
                 val params = coordinator._workoutParameters.value
                 val currentState = coordinator._workoutState.value
 
@@ -260,7 +268,9 @@ class ActiveSessionEngine(
 
         // #6: Rep events collector for handling machine rep notifications
         coordinator.repEventsCollectionJob = scope.launch {
-            bleRepository.repEvents.collect { notification ->
+            bleRepository.repEvents
+                .catch { e -> Logger.e(e) { "repEvents collector error" } }
+                .collect { notification ->
                 val state = coordinator._workoutState.value
                 if (state is WorkoutState.Active) {
                     handleRepNotification(notification)
@@ -271,7 +281,9 @@ class ActiveSessionEngine(
         // #7: CRITICAL: Global metricsFlow collection (matches parent repo)
         coordinator.monitorDataCollectionJob = scope.launch {
             Logger.d("ActiveSessionEngine") { "Starting global metricsFlow collection..." }
-            bleRepository.metricsFlow.collect { metric ->
+            bleRepository.metricsFlow
+                .catch { e -> Logger.e(e) { "metricsFlow collector error" } }
+                .collect { metric ->
                 coordinator._currentMetric.value = metric
                 handleMonitorMetric(metric)
             }
@@ -279,18 +291,23 @@ class ActiveSessionEngine(
 
         // #8: Heuristic data collection for Echo mode force feedback
         scope.launch {
+            // heuristicData is a StateFlow — use try-catch in collect body (SharedFlow.catch is no-op)
             bleRepository.heuristicData.collect { stats ->
-                if (stats != null && coordinator._workoutState.value is WorkoutState.Active) {
-                    val concentricMax = stats.concentric.kgMax
-                    val eccentricMax = stats.eccentric.kgMax
-                    val currentMax = maxOf(concentricMax, eccentricMax)
+                try {
+                    if (stats != null && coordinator._workoutState.value is WorkoutState.Active) {
+                        val concentricMax = stats.concentric.kgMax
+                        val eccentricMax = stats.eccentric.kgMax
+                        val currentMax = maxOf(concentricMax, eccentricMax)
 
-                    coordinator._currentHeuristicKgMax.value = currentMax
+                        coordinator._currentHeuristicKgMax.value = currentMax
 
-                    if (currentMax > coordinator.maxHeuristicKgMax) {
-                        coordinator.maxHeuristicKgMax = currentMax
-                        Logger.v("ActiveSessionEngine") { "Echo force telemetry: kgMax=$currentMax (concentric=$concentricMax, eccentric=$eccentricMax)" }
+                        if (currentMax > coordinator.maxHeuristicKgMax) {
+                            coordinator.maxHeuristicKgMax = currentMax
+                            Logger.v("ActiveSessionEngine") { "Echo force telemetry: kgMax=$currentMax (concentric=$concentricMax, eccentric=$eccentricMax)" }
+                        }
                     }
+                } catch (e: Exception) {
+                    Logger.e(e) { "heuristicData collector error" }
                 }
             }
         }
@@ -1919,11 +1936,13 @@ class ActiveSessionEngine(
             }
             // Metric feeder coroutine
             launch {
-                bleRepository.metricsFlow.collect { metric ->
-                    // Use average of both cables for load detection
-                    val load = (metric.loadA + metric.loadB) / 2f
-                    motionStartDetector.onMetricReceived(load, metric.timestamp)
-                }
+                bleRepository.metricsFlow
+                    .catch { e -> Logger.e(e) { "metricsFlow collector error (motionStart)" } }
+                    .collect { metric ->
+                        // Use average of both cables for load detection
+                        val load = (metric.loadA + metric.loadB) / 2f
+                        motionStartDetector.onMetricReceived(load, metric.timestamp)
+                    }
             }
         }
     }
@@ -2216,14 +2235,18 @@ class ActiveSessionEngine(
     private fun restartCollectionJobs() {
         coordinator.monitorDataCollectionJob = scope.launch {
             Logger.d("ActiveSessionEngine") { "Restarting global metricsFlow collection after resume..." }
-            bleRepository.metricsFlow.collect { metric ->
-                coordinator._currentMetric.value = metric
-                handleMonitorMetric(metric)
-            }
+            bleRepository.metricsFlow
+                .catch { e -> Logger.e(e) { "metricsFlow collector error (restart)" } }
+                .collect { metric ->
+                    coordinator._currentMetric.value = metric
+                    handleMonitorMetric(metric)
+                }
         }
 
         coordinator.repEventsCollectionJob = scope.launch {
-            bleRepository.repEvents.collect { notification ->
+            bleRepository.repEvents
+                .catch { e -> Logger.e(e) { "repEvents collector error (restart)" } }
+                .collect { notification ->
                 val state = coordinator._workoutState.value
                 if (state is WorkoutState.Active) {
                     handleRepNotification(notification)

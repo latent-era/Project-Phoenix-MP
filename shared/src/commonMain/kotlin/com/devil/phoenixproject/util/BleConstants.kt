@@ -160,7 +160,7 @@ object BleConstants {
     // -------------------------------------------------------------------------
     object Timing {
         const val CONNECTION_RETRY_COUNT = 3
-        const val CONNECTION_RETRY_DELAY_MS = 100L
+        const val CONNECTION_RETRY_DELAY_MS = 1500L  // Android BLE needs 1-2s between GATT retries
         const val DESIRED_MTU = 247  // Match parent repo (needs 100+ for 96-byte program frames)
         const val HEARTBEAT_INTERVAL_MS = 2000L
         const val HEARTBEAT_READ_TIMEOUT_MS = 1500L
