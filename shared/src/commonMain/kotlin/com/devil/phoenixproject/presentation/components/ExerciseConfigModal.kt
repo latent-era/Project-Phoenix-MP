@@ -176,7 +176,7 @@ private fun ExerciseConfigHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(Spacing.medium)
     ) {
         Text(
@@ -274,7 +274,7 @@ private fun TutConfigPanel(
                 checkedThumbColor = MaterialTheme.colorScheme.primary,
                 checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
                 uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                uncheckedTrackColor = MaterialTheme.colorScheme.surface
             )
         )
     }
@@ -336,7 +336,7 @@ private fun EchoConfigPanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    MaterialTheme.colorScheme.surfaceContainerLowest,
+                    MaterialTheme.colorScheme.surface,
                     RoundedCornerShape(Spacing.medium)
                 )
                 .padding(Spacing.extraSmall),
@@ -351,7 +351,7 @@ private fun EchoConfigPanel(
                     color = if (isSelected) {
                         MaterialTheme.colorScheme.primaryContainer
                     } else {
-                        MaterialTheme.colorScheme.surfaceContainerLowest
+                        MaterialTheme.colorScheme.surface
                     },
                     onClick = { onEchoLevelChange(level) }
                 ) {
@@ -428,7 +428,7 @@ private fun ModeInfoCard(title: String, description: String) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Spacing.medium),
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(modifier = Modifier.padding(Spacing.medium)) {
             Text(

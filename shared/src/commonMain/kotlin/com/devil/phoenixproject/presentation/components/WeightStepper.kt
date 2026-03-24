@@ -71,7 +71,7 @@ fun WeightStepper(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    MaterialTheme.colorScheme.surfaceContainerLow,
+                    MaterialTheme.colorScheme.surface,
                     RoundedCornerShape(Spacing.medium)
                 )
                 .border(
@@ -134,7 +134,7 @@ fun WeightStepper(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(Spacing.small),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
+            color = MaterialTheme.colorScheme.surface
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = Spacing.medium, vertical = Spacing.small),

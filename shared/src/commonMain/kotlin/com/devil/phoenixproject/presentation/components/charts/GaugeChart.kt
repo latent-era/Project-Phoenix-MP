@@ -63,7 +63,7 @@ fun GaugeChart(
         else -> MaterialTheme.colorScheme.tertiary
     }
 
-    val surfaceContainerHighestColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val surfaceContainerHighestColor = MaterialTheme.colorScheme.surface
     val chartHeight = ResponsiveDimensions.chartHeight(baseHeight = 200.dp)
 
     Column(modifier = modifier) {

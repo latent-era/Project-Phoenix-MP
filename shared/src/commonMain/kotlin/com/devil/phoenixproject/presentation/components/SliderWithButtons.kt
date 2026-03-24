@@ -71,7 +71,7 @@ fun SliderWithButtons(
                 modifier = Modifier.size(36.dp),
                 enabled = enabled && value > valueRange.start,
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = CircleShape
@@ -107,7 +107,7 @@ fun SliderWithButtons(
                 modifier = Modifier.size(36.dp),
                 enabled = enabled && value < valueRange.endInclusive,
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = CircleShape

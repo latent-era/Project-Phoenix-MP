@@ -448,7 +448,7 @@ private fun SetReadyEchoLevelSelector(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    MaterialTheme.colorScheme.surfaceContainerLowest,
+                    MaterialTheme.colorScheme.surface,
                     RoundedCornerShape(Spacing.medium)
                 )
                 .padding(Spacing.extraSmall),
@@ -463,7 +463,7 @@ private fun SetReadyEchoLevelSelector(
                     color = if (isSelected) {
                         MaterialTheme.colorScheme.primaryContainer
                     } else {
-                        MaterialTheme.colorScheme.surfaceContainerLowest
+                        MaterialTheme.colorScheme.surface
                     },
                     onClick = { onLevelChange(level) }
                 ) {

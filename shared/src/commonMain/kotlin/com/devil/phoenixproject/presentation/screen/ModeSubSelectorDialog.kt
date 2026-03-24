@@ -27,7 +27,7 @@ fun ModeSubSelectorDialog(
             AlertDialog(
                 onDismissRequest = onDismiss,
                 title = { Text("Select TUT Variant", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(28.dp),
                 text = {
                     Column(
@@ -79,7 +79,7 @@ fun ModeSubSelectorDialog(
             AlertDialog(
                 onDismissRequest = onDismiss,
                 title = { Text("Echo Mode Configuration", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                containerColor = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(28.dp),
                 text = {
                     Column(

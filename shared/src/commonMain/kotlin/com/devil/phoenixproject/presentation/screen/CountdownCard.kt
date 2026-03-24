@@ -158,7 +158,7 @@ fun CountdownCard(
                     modifier = Modifier
                         .size(countdownSize - 24.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        .background(MaterialTheme.colorScheme.surface),
                     contentAlignment = Alignment.Center
                 ) {
                     val countdownText = if (countdownSecondsRemaining > 0) {
@@ -185,7 +185,7 @@ fun CountdownCard(
             if (nextExerciseWeight != null || nextExerciseReps != null || nextExerciseMode != null) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(20.dp),
                     tonalElevation = 2.dp
                 ) {

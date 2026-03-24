@@ -79,7 +79,7 @@ fun ProfileSpeedDial(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        color = MaterialTheme.colorScheme.surface,
                         shadowElevation = 4.dp
                     ) {
                         Text(
@@ -109,7 +109,7 @@ fun ProfileSpeedDial(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            color = MaterialTheme.colorScheme.surface,
                             shadowElevation = 4.dp
                         ) {
                             Text(
@@ -138,7 +138,7 @@ fun ProfileSpeedDial(
         FloatingActionButton(
             onClick = { expanded = !expanded },
             modifier = Modifier.size(56.dp),
-            containerColor = if (expanded) MaterialTheme.colorScheme.surfaceContainerHighest
+            containerColor = if (expanded) MaterialTheme.colorScheme.surface
                             else ProfileColors.getOrElse(activeProfile?.colorIndex ?: 0) { ProfileColors[0] },
             contentColor = Color.White
         ) {

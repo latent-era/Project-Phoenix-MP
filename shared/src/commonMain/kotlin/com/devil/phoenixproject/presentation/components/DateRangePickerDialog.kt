@@ -154,7 +154,7 @@ fun DateRangePickerDialog(
                 Text("Cancel")
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(28.dp)
     )
 }

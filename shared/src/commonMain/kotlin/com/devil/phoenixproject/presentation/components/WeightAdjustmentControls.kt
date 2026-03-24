@@ -116,7 +116,7 @@ fun WeightAdjustmentControls(
         // Total weight for 2 cables indicator
         Surface(
             shape = RoundedCornerShape(Spacing.small),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
+            color = MaterialTheme.colorScheme.surface
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = Spacing.medium, vertical = Spacing.small),
@@ -336,7 +336,7 @@ private fun WeightPickerDialog(
                 // Total weight for 2 cables indicator
                 Surface(
                     shape = RoundedCornerShape(Spacing.small),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh
+                    color = MaterialTheme.colorScheme.surface
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = Spacing.medium, vertical = Spacing.small),

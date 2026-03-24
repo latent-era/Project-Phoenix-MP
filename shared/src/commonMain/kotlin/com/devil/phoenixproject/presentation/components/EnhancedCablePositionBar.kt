@@ -168,7 +168,7 @@ fun EnhancedCablePositionBar(
                 .weight(1f)
                 .width(40.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             val barWidth = size.width
             val barHeight = size.height

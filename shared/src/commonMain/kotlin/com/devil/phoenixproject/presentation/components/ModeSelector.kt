@@ -49,7 +49,7 @@ fun ModeSelector(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    MaterialTheme.colorScheme.surfaceContainerLowest,
+                    MaterialTheme.colorScheme.surface,
                     RoundedCornerShape(Spacing.medium)
                 )
                 .padding(Spacing.extraSmall),
@@ -66,9 +66,9 @@ fun ModeSelector(
                         .clip(RoundedCornerShape(Spacing.small))
                         .background(
                             if (isSelected) {
-                                MaterialTheme.colorScheme.surfaceContainerHigh
+                                MaterialTheme.colorScheme.surface
                             } else {
-                                MaterialTheme.colorScheme.surfaceContainerLowest
+                                MaterialTheme.colorScheme.surface
                             }
                         )
                         .clickable { onModeSelected(mode) }

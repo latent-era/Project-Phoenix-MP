@@ -154,7 +154,7 @@ fun RestTimerCard(
                         .size(180.dp)
                         .scale(pulse)
                         .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            color = MaterialTheme.colorScheme.surface,
                             shape = RoundedCornerShape(200.dp)
                         )
                 )
@@ -321,7 +321,7 @@ fun RestTimerCard(
                             .fillMaxWidth()
                             .height(4.dp),
                         color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        trackColor = MaterialTheme.colorScheme.surface,
                     )
                 }
             }
@@ -453,7 +453,7 @@ private fun RestTimerEchoLevelSelector(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    MaterialTheme.colorScheme.surfaceContainerLowest,
+                    MaterialTheme.colorScheme.surface,
                     RoundedCornerShape(Spacing.medium)
                 )
                 .padding(Spacing.extraSmall),
@@ -468,7 +468,7 @@ private fun RestTimerEchoLevelSelector(
                     color = if (isSelected) {
                         MaterialTheme.colorScheme.primaryContainer
                     } else {
-                        MaterialTheme.colorScheme.surfaceContainerLowest
+                        MaterialTheme.colorScheme.surface
                     },
                     onClick = { onLevelChange(level) }
                 ) {

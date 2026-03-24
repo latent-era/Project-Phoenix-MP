@@ -272,7 +272,7 @@ fun RpeQuickSelect(
                 onClick = { onRpeSelected(rpeInfo.value) },
                 shape = RoundedCornerShape(8.dp),
                 color = if (isSelected) getRpeColor(rpeInfo.value).copy(alpha = 0.3f)
-                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                else MaterialTheme.colorScheme.surface,
                 modifier = Modifier.size(44.dp)
             ) {
                 Box(

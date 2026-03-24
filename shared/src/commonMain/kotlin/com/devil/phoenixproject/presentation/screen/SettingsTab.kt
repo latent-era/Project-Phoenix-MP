@@ -169,7 +169,7 @@ fun SettingsTab(
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    containerColor = MaterialTheme.colorScheme.surface,
                                     labelColor = MaterialTheme.colorScheme.onSurface
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
@@ -189,7 +189,7 @@ fun SettingsTab(
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    containerColor = MaterialTheme.colorScheme.surface,
                                     labelColor = MaterialTheme.colorScheme.onSurface
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
@@ -746,7 +746,7 @@ fun SettingsTab(
         //     modifier = Modifier
         //         .fillMaxWidth()
         //         .shadow(8.dp, RoundedCornerShape(20.dp)),
-        //     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+        //     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         //     shape = RoundedCornerShape(20.dp),
         //     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         //     border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
