@@ -2,9 +2,11 @@ package com.devil.phoenixproject.presentation.screen
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.devil.phoenixproject.data.repository.ExerciseRepository
 import com.devil.phoenixproject.domain.model.*
@@ -333,7 +335,7 @@ fun ActiveWorkoutScreen(
                 title = { Text("Stop Current Set?") },
                 text = { Text("Stop this set, skip this exercise, or end the entire workout.") },
                 containerColor = MaterialTheme.colorScheme.surface,
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedCornerShape(12.dp),
                 confirmButton = {
                     Button(
                         onClick = {
@@ -378,7 +380,7 @@ fun ActiveWorkoutScreen(
                 title = { Text("Exit Workout?") },
                 text = { Text("The workout is currently active. Are you sure you want to exit?") },
                 containerColor = MaterialTheme.colorScheme.surface,
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedCornerShape(12.dp),
                 confirmButton = {
                     Button(
                         onClick = {

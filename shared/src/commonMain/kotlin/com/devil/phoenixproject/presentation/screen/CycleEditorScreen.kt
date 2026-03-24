@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devil.phoenixproject.domain.model.*
 import com.devil.phoenixproject.presentation.components.cycle.AddDaySheet
 import com.devil.phoenixproject.presentation.components.cycle.ProgressionSettingsSheet
@@ -107,7 +109,7 @@ fun CycleEditorScreen(
                     textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     singleLine = true
                 )
-                Button(onClick = { saveCycle() }) {
+                Button(onClick = { saveCycle() }, shape = RoundedCornerShape(8.dp)) {
                     Text("Preview")
                 }
             }
@@ -132,8 +134,11 @@ fun CycleEditorScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "CYCLE LENGTH: ${uiState.items.size} days",
-                    style = MaterialTheme.typography.labelLarge,
+                    text = "CYCLE LENGTH: ${uiState.items.size} DAYS",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 IconButton(onClick = { cycleEditorViewModel.showProgressionSheet(true) }) {
@@ -166,11 +171,15 @@ fun CycleEditorScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedButton(
-                                onClick = { cycleEditorViewModel.showAddDaySheet(true) }
+                                onClick = { cycleEditorViewModel.showAddDaySheet(true) },
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text("+ Add Workout")
                             }
-                            OutlinedButton(onClick = { cycleEditorViewModel.addRestDay() }) {
+                            OutlinedButton(
+                                onClick = { cycleEditorViewModel.addRestDay() },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
                                 Text("+ Add Rest")
                             }
                         }

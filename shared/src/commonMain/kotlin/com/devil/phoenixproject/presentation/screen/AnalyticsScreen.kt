@@ -1,5 +1,6 @@
 package com.devil.phoenixproject.presentation.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devil.phoenixproject.domain.model.WeightUnit
 import com.devil.phoenixproject.domain.model.WorkoutSession
 import com.devil.phoenixproject.presentation.viewmodel.MainViewModel
@@ -57,10 +59,11 @@ fun ProgressTab(
     ) {
         item {
             Text(
-                "Progress",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
+                "PROGRESS",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.5.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -88,10 +91,11 @@ fun ProgressTab(
 
         item {
             Text(
-                "Personal Records",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
+                "PERSONAL RECORDS",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.5.sp
             )
         }
 
@@ -119,14 +123,17 @@ fun ProgressTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+                        shadowElevation = 0.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Text(
                             text = mode.uppercase(),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 1.5.sp,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
@@ -144,8 +151,10 @@ fun ProgressTab(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         shape = RoundedCornerShape(0.dp) // Flat edges for grouped look
                     ) {
                         Row(
@@ -282,7 +291,7 @@ fun AnalyticsScreen(
             // Tab Row - Redesigned: Dashboard, Progress, History
             PrimaryTabRow(
                 selectedTabIndex = pagerState.currentPage,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 indicator = {
                     TabRowDefaults.PrimaryIndicator(
@@ -414,7 +423,7 @@ fun AnalyticsScreen(
             )
         }
 
-        // Export FAB - Material 3 Expressive
+        // Export FAB
         // TODO: Export functionality needs platform-specific context implementation
         FloatingActionButton(
             onClick = { showExportMenu = true },
@@ -422,10 +431,10 @@ fun AnalyticsScreen(
                 .align(Alignment.BottomEnd)
                 .padding(Spacing.large),
             containerColor = MaterialTheme.colorScheme.primary,
-            shape = RoundedCornerShape(28.dp), // Material 3 Expressive: Very rounded FAB
+            shape = RoundedCornerShape(12.dp),
             elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 8.dp, // Material 3 Expressive: Higher elevation
-                pressedElevation = 4.dp
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp
             )
         ) {
             Icon(
@@ -535,8 +544,8 @@ fun AnalyticsScreen(
                 TextButton(
                     onClick = { showExportMenu = false },
                     enabled = !isExporting,
-                    modifier = Modifier.height(56.dp),
-                    shape = RoundedCornerShape(20.dp)
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         "Cancel",
@@ -545,8 +554,8 @@ fun AnalyticsScreen(
                     )
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            shape = RoundedCornerShape(28.dp)
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp)
         )
     }
 

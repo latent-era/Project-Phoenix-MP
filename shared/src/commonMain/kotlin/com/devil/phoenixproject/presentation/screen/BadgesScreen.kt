@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devil.phoenixproject.data.local.BadgeDefinitions
 import com.devil.phoenixproject.data.repository.BadgeWithProgress
 import com.devil.phoenixproject.domain.model.*
@@ -162,11 +163,12 @@ fun StreakWidget(
         modifier = modifier
             .fillMaxWidth()
             .scale(scale),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
@@ -203,12 +205,12 @@ fun StreakWidget(
                     text = "${streakInfo.currentStreak}",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Day Streak",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 if (streakInfo.isAtRisk) {
                     Text(
@@ -225,7 +227,7 @@ fun StreakWidget(
                 modifier = Modifier
                     .width(1.dp)
                     .height(60.dp)
-                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                    .background(MaterialTheme.colorScheme.outlineVariant)
             )
 
             // Total Workouts
@@ -235,7 +237,7 @@ fun StreakWidget(
                 Icon(
                     imageVector = Icons.Default.FitnessCenter,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(28.dp)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -243,12 +245,12 @@ fun StreakWidget(
                     text = "$totalWorkouts",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Workouts",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
 
@@ -257,7 +259,7 @@ fun StreakWidget(
                 modifier = Modifier
                     .width(1.dp)
                     .height(60.dp)
-                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                    .background(MaterialTheme.colorScheme.outlineVariant)
             )
 
             // Badges Earned
@@ -275,12 +277,12 @@ fun StreakWidget(
                     text = "$totalBadges",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Badges",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
         }
@@ -301,8 +303,11 @@ private fun StatsRow(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Badge Progress",
-                style = MaterialTheme.typography.labelMedium,
+                text = "BADGE PROGRESS",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.5.sp
+                ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
@@ -394,12 +399,10 @@ private fun BadgeCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isEarned)
-                MaterialTheme.colorScheme.surfaceVariant
-            else
-                MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = if (isEarned) BorderStroke(2.dp, tierColor) else null
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, if (isEarned) tierColor else MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -495,6 +498,8 @@ private fun BadgeDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(12.dp),
         icon = {
             Box(
                 modifier = Modifier

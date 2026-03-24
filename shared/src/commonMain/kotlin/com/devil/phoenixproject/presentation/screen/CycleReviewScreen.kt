@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -59,8 +60,9 @@ fun CycleReviewScreen(
         contentWindowInsets = WindowInsets.navigationBars,
         bottomBar = {
             Surface(
-                tonalElevation = 3.dp,
-                shadowElevation = 8.dp
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Box(
                     modifier = Modifier
@@ -72,7 +74,7 @@ fun CycleReviewScreen(
                     Button(
                         onClick = onSave,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             text = "Confirm & Finish",
@@ -135,12 +137,11 @@ private fun CycleReviewDayCard(
             .fillMaxWidth()
             .clickable(enabled = canExpand) { onToggleExpand() },
         colors = CardDefaults.cardColors(
-            containerColor = if (day.isRestDay)
-                MaterialTheme.colorScheme.surfaceContainerHigh
-            else
-                MaterialTheme.colorScheme.surfaceContainer
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column {
             // Header row (always visible)
@@ -366,7 +367,7 @@ private fun buildModifierBadges(day: CycleDay): List<String> {
 private fun ReviewModifierBadge(text: String) {
     Surface(
         color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = RoundedCornerShape(6.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Text(
             text = text,

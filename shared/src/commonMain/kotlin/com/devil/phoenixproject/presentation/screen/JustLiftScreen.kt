@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -231,9 +232,11 @@ fun JustLiftScreen(
                         .fillMaxWidth()
                         .weight(1f),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(
                         modifier = Modifier
@@ -291,9 +294,11 @@ fun JustLiftScreen(
                             .fillMaxWidth()
                             .weight(1f),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(
                             modifier = Modifier
@@ -328,9 +333,11 @@ fun JustLiftScreen(
                             .fillMaxWidth()
                             .weight(1f),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(
                             modifier = Modifier
@@ -370,9 +377,11 @@ fun JustLiftScreen(
                             .fillMaxWidth()
                             .weight(1f),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(
                             modifier = Modifier
@@ -435,9 +444,11 @@ fun JustLiftScreen(
                             .fillMaxWidth()
                             .weight(1f),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(
                             modifier = Modifier
@@ -476,8 +487,9 @@ fun JustLiftScreen(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shadowElevation = 2.dp
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 0.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier
@@ -515,8 +527,9 @@ fun JustLiftScreen(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shadowElevation = 2.dp
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 0.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier
@@ -612,10 +625,11 @@ fun ActiveStatusCard(
         colors = CardDefaults.cardColors(
             containerColor = if (workoutState is WorkoutState.Active)
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
-            else MaterialTheme.colorScheme.surfaceVariant
+            else MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -702,13 +716,13 @@ fun ActiveStatusCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
                     elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 4.dp,
-                        pressedElevation = 2.dp
+                        defaultElevation = 0.dp,
+                        pressedElevation = 0.dp
                     )
                 ) {
                     Icon(Icons.Default.Close, contentDescription = "Close workout")
@@ -803,10 +817,9 @@ fun AutoStartStopCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isCountingDown || isStopping) 8.dp else 4.dp
-        )
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier

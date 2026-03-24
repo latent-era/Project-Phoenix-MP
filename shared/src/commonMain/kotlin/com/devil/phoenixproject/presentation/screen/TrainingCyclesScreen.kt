@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import co.touchlab.kermit.Logger
 import com.devil.phoenixproject.data.repository.ExerciseRepository
@@ -294,10 +295,12 @@ fun TrainingCyclesScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "All Cycles",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = "ALL CYCLES",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.5.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         TextButton(onClick = { showCreationSheet = true }) {
                             Icon(
@@ -540,6 +543,8 @@ fun TrainingCyclesScreen(
     showDeleteConfirmDialog?.let { cycle ->
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp),
             title = { Text("Delete Cycle?") },
             text = { Text("Are you sure you want to delete \"${cycle.name}\"? This cannot be undone.") },
             confirmButton = {
@@ -569,6 +574,8 @@ fun TrainingCyclesScreen(
     showWarningDialog?.let { warnings ->
         AlertDialog(
             onDismissRequest = { showWarningDialog = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp),
             icon = {
                 Icon(
                     Icons.Default.Warning,
@@ -611,6 +618,8 @@ fun TrainingCyclesScreen(
     showErrorDialog?.let { errorMessage ->
         AlertDialog(
             onDismissRequest = { showErrorDialog = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp),
             icon = {
                 Icon(
                     Icons.Default.Error,
@@ -706,11 +715,11 @@ private fun ActiveCycleCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
     ) {
         Column(
             modifier = Modifier
@@ -829,7 +838,7 @@ private fun ActiveCycleCard(
                     OutlinedButton(
                         onClick = onEditCycle,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -840,7 +849,7 @@ private fun ActiveCycleCard(
                         OutlinedButton(
                             onClick = onAdvanceDay,
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Icon(Icons.Default.SkipNext, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
@@ -851,7 +860,7 @@ private fun ActiveCycleCard(
                         OutlinedButton(
                             onClick = { onJumpToDay(displayedDayNumber) },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Icon(Icons.Default.SkipNext, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
@@ -864,7 +873,7 @@ private fun ActiveCycleCard(
                             Button(
                                 onClick = { onStartWorkout(displayedCycleDay?.routineId, cycle.id, displayedDayNumber) },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
@@ -874,7 +883,7 @@ private fun ActiveCycleCard(
                             OutlinedButton(
                                 onClick = onEditCycle,
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Icon(Icons.Default.Edit, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
@@ -887,7 +896,7 @@ private fun ActiveCycleCard(
                             OutlinedButton(
                                 onClick = { onJumpToDay(displayedDayNumber) },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Icon(Icons.Default.SkipNext, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
@@ -896,7 +905,7 @@ private fun ActiveCycleCard(
                             Button(
                                 onClick = { onStartWorkout(displayedCycleDay?.routineId, cycle.id, displayedDayNumber) },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
@@ -906,7 +915,7 @@ private fun ActiveCycleCard(
                             OutlinedButton(
                                 onClick = { onJumpToDay(displayedDayNumber) },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 Icon(Icons.Default.SkipNext, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
@@ -941,12 +950,11 @@ private fun CycleListItem(
             .fillMaxWidth()
             .clickable { expanded = !expanded },
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-            else MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(16.dp),
-        border = if (isActive) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(

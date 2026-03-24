@@ -1,16 +1,20 @@
 package com.devil.phoenixproject.presentation.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devil.phoenixproject.data.repository.ExerciseRepository
 import com.devil.phoenixproject.domain.model.PersonalRecord
 import com.devil.phoenixproject.domain.model.WeightUnit
@@ -91,10 +95,11 @@ fun InsightsTab(
     ) {
         item {
             Text(
-                text = "Dashboard",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                text = "DASHBOARD",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.5.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -111,15 +116,30 @@ fun InsightsTab(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 HistoryTimePeriod.entries.forEach { period ->
+                    val isSelected = selectedPeriod == period
                     FilterChip(
-                        selected = selectedPeriod == period,
+                        selected = isSelected,
                         onClick = { selectedPeriod = period },
                         label = {
                             Text(
                                 period.label,
-                                style = MaterialTheme.typography.labelMedium
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) Color.White
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = Color.White,
+                            containerColor = Color.Transparent
+                        ),
+                        border = if (!isSelected) FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = false,
+                            borderColor = MaterialTheme.colorScheme.outlineVariant,
+                            borderWidth = 1.dp
+                        ) else null
                     )
                 }
             }
@@ -206,8 +226,11 @@ fun InsightsTab(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                        )
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(
                             modifier = Modifier

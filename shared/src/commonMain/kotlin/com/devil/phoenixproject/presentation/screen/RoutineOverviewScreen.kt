@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
@@ -217,6 +218,8 @@ fun RoutineOverviewScreen(
     if (showStopConfirmation) {
         AlertDialog(
             onDismissRequest = { showStopConfirmation = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp),
             title = { Text("Exit Routine?") },
             text = { Text("Progress will be saved.") },
             confirmButton = {
@@ -268,8 +271,12 @@ private fun ExerciseOverviewCard(
 
     Card(
         modifier = Modifier.fillMaxSize(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -332,10 +339,11 @@ private fun ExerciseOverviewCard(
                 if (!isBodyweight) Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
-                    shape = RoundedCornerShape(20.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(
                         modifier = Modifier
@@ -449,7 +457,7 @@ private fun ExerciseOverviewCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Icon(Icons.Default.PlayArrow, null)
                     Spacer(Modifier.width(8.dp))

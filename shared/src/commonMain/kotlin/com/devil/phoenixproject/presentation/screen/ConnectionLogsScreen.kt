@@ -1,5 +1,6 @@
 package com.devil.phoenixproject.presentation.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -236,6 +237,8 @@ fun ConnectionLogsScreen(
     if (showExportDialog) {
         AlertDialog(
             onDismissRequest = { showExportDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp),
             title = { Text("Export Logs") },
             text = {
                 Column {
@@ -288,6 +291,8 @@ fun ConnectionLogsScreen(
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp),
             title = { Text("Clear Logs?") },
             text = { Text("This will permanently delete all ${logs.size} log entries.") },
             confirmButton = {
@@ -347,8 +352,11 @@ private fun LogEntryCard(log: ConnectionLogEntity) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = levelColor.copy(alpha = 0.05f)
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier

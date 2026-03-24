@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +19,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
@@ -37,8 +37,6 @@ private val FireOrange = Color(0xFFFF6B35)
 private val FireYellow = Color(0xFFFFB347)
 private val FireRed = Color(0xFFE63946)
 private val EmberGold = Color(0xFFFFD700)
-private val DarkSlate = Color(0xFF0F172A)
-private val DeepNavy = Color(0xFF1E293B)
 
 /**
  * Animated splash screen with the Vitruvian Phoenix logo.
@@ -148,15 +146,7 @@ fun SplashScreen(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            DarkSlate,
-                            DeepNavy,
-                            DarkSlate
-                        )
-                    )
-                ),
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) {
             // Ember particles layer (behind logo)
@@ -167,38 +157,19 @@ fun SplashScreen(
                 )
             }
 
-            // Fire glow behind logo
+            // Glow behind logo
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
                     .aspectRatio(1f)
                     .scale(logoScale * logoBreath * 1.3f)
-                    .alpha(glowIntensity * 0.5f * logoAlpha)
+                    .alpha(glowIntensity * 0.3f * logoAlpha)
                     .blur(40.dp)
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                FireOrange.copy(alpha = fireFlicker * 0.8f),
-                                FireYellow.copy(alpha = 0.4f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-            )
-
-            // Secondary inner glow
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.5f)
-                    .aspectRatio(1f)
-                    .scale(logoScale * logoBreath * 1.1f)
-                    .alpha(glowIntensity * 0.7f * logoAlpha)
-                    .blur(25.dp)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                FireYellow.copy(alpha = 0.9f),
-                                FireOrange.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = fireFlicker * 0.6f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                 Color.Transparent
                             )
                         )
@@ -231,12 +202,7 @@ fun SplashScreen(
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 6.sp,
-                        color = FireOrange,
-                        shadow = Shadow(
-                            color = FireYellow.copy(alpha = 0.6f),
-                            offset = Offset(0f, 0f),
-                            blurRadius = 12f
-                        )
+                        color = MaterialTheme.colorScheme.primary
                     ),
                     modifier = Modifier
                         .alpha(textAlpha)
@@ -252,7 +218,7 @@ fun SplashScreen(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Light,
                         letterSpacing = 2.sp,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     ),
                     modifier = Modifier
                         .alpha(textAlpha * 0.8f)
@@ -375,7 +341,7 @@ fun SimpleSplashScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkSlate),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -398,7 +364,7 @@ fun SimpleSplashScreen(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 6.sp,
-                    color = FireOrange
+                    color = MaterialTheme.colorScheme.primary
                 )
             )
         }

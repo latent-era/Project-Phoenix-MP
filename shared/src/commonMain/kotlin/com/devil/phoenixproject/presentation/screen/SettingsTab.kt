@@ -19,12 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devil.phoenixproject.domain.model.WeightUnit
 import com.devil.phoenixproject.util.ColorSchemes
 import com.devil.phoenixproject.util.BackupProgress
@@ -124,16 +124,14 @@ fun SettingsTab(
     ) {
         // Header removed for global scaffold integration
 
-        // Donation Card - Material 3 Expressive
+        // Donation Card
         val uriHandler = LocalUriHandler.current
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(8.dp, RoundedCornerShape(20.dp)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(
                 modifier = Modifier
@@ -160,10 +158,12 @@ fun SettingsTab(
                     }
                     Spacer(modifier = Modifier.width(Spacing.medium))
                     Text(
-                        "Like My Work?",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        "LIKE MY WORK?",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(Spacing.small))
@@ -185,15 +185,13 @@ fun SettingsTab(
             }
         }
 
-    // Weight Unit Section - Material 3 Expressive
+    // Weight Unit Section
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)), // Material 3 Expressive: More shadow, more rounded
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest), // Material 3 Expressive: Higher contrast
-        shape = RoundedCornerShape(20.dp), // Material 3 Expressive: More rounded (was 16dp)
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Material 3 Expressive: Higher elevation (was 4dp)
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)) // Material 3 Expressive: Thicker border (was 1dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
             Column(
                 modifier = Modifier
@@ -220,10 +218,12 @@ fun SettingsTab(
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
-                    "Weight Unit",
-                    style = MaterialTheme.typography.titleLarge, // Material 3 Expressive: Larger (was titleMedium)
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    "WEIGHT UNIT",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
                 Spacer(modifier = Modifier.height(Spacing.small))
@@ -278,15 +278,13 @@ fun SettingsTab(
             }
         }
 
-    // Appearance Section - Material 3 Expressive
+    // Appearance Section
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -313,10 +311,12 @@ fun SettingsTab(
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
-                    "Appearance",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    "APPEARANCE",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -345,21 +345,23 @@ fun SettingsTab(
                 }
                 Switch(
                     checked = darkModeEnabled,
-                    onCheckedChange = onDarkModeChange
+                    onCheckedChange = onDarkModeChange,
+                    colors = SwitchDefaults.colors(
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        checkedThumbColor = Color.White
+                    )
                 )
             }
         }
     }
 
-    // Workout Preferences Section - Material 3 Expressive
+    // Workout Preferences Section
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)), // Material 3 Expressive: More shadow, more rounded
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest), // Material 3 Expressive: Higher contrast
-        shape = RoundedCornerShape(20.dp), // Material 3 Expressive: More rounded (was 16dp)
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Material 3 Expressive: Higher elevation (was 4dp)
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)) // Material 3 Expressive: Thicker border (was 1dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
             Column(
                 modifier = Modifier
@@ -386,10 +388,12 @@ fun SettingsTab(
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
-                    "Workout Preferences",
-                    style = MaterialTheme.typography.titleLarge, // Material 3 Expressive: Larger (was titleMedium)
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    "WORKOUT PREFERENCES",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
                 Spacer(modifier = Modifier.height(Spacing.small))
@@ -490,9 +494,15 @@ fun SettingsTab(
                     }
                     Switch(
                         checked = enableVideoPlayback,
-                        onCheckedChange = onEnableVideoPlaybackChange
+                        onCheckedChange = onEnableVideoPlaybackChange,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            checkedThumbColor = Color.White
+                        )
                     )
                 }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 Spacer(modifier = Modifier.height(Spacing.medium))
 
@@ -520,9 +530,15 @@ fun SettingsTab(
                     }
                     Switch(
                         checked = audioRepCountEnabled,
-                        onCheckedChange = onAudioRepCountChange
+                        onCheckedChange = onAudioRepCountChange,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            checkedThumbColor = Color.White
+                        )
                     )
                 }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 Spacer(modifier = Modifier.height(Spacing.medium))
 
@@ -550,21 +566,23 @@ fun SettingsTab(
                     }
                     Switch(
                         checked = gamificationEnabled,
-                        onCheckedChange = onGamificationEnabledChange
+                        onCheckedChange = onGamificationEnabledChange,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            checkedThumbColor = Color.White
+                        )
                     )
                 }
             }
         }
 
-    // Color Scheme Section - Compact with visual previews
+    // Color Scheme Section
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -612,10 +630,12 @@ fun SettingsTab(
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
-                    "LED Color Scheme",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    "LED COLOR SCHEME",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -638,7 +658,6 @@ fun SettingsTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .shadow(4.dp, RoundedCornerShape(12.dp))
                     .background(
                         Brush.horizontalGradient(previewColors),
                         RoundedCornerShape(12.dp)
@@ -725,22 +744,24 @@ fun SettingsTab(
                     Switch(
                         checked = discoModeActive,
                         onCheckedChange = { onDiscoModeToggle(it) },
-                        enabled = isConnected
+                        enabled = isConnected,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            checkedThumbColor = Color.White
+                        )
                     )
                 }
             }
         }
     }
 
-    // Data Management Section - Material 3 Expressive
+    // Data Management Section
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)), // Material 3 Expressive: More shadow, more rounded
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest), // Material 3 Expressive: Higher contrast
-        shape = RoundedCornerShape(20.dp), // Material 3 Expressive: More rounded (was 16dp)
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Material 3 Expressive: Higher elevation (was 4dp)
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f)) // Material 3 Expressive: Thicker border, error color for destructive action
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
             Column(
                 modifier = Modifier
@@ -767,10 +788,12 @@ fun SettingsTab(
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
-                    "Data Management",
-                    style = MaterialTheme.typography.titleLarge, // Material 3 Expressive: Larger (was titleMedium)
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    "DATA MANAGEMENT",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
                 Spacer(modifier = Modifier.height(Spacing.small))
@@ -781,7 +804,7 @@ fun SettingsTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     ),
@@ -808,7 +831,7 @@ fun SettingsTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.secondary
                     ),
@@ -833,12 +856,12 @@ fun SettingsTab(
                     onClick = { showDeleteAllDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp), // Material 3 Expressive: Taller button
-                    shape = RoundedCornerShape(20.dp), // Material 3 Expressive: More rounded
+                        .height(56.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 4.dp,
-                        pressedElevation = 2.dp
+                        defaultElevation = 0.dp,
+                        pressedElevation = 0.dp
                     )
                 ) {
                     Icon(
@@ -856,16 +879,14 @@ fun SettingsTab(
             }
         }
 
-    // Achievements Section - Material 3 Expressive (hidden when gamification is disabled)
+    // Achievements Section (hidden when gamification is disabled)
     if (gamificationEnabled) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -892,10 +913,12 @@ fun SettingsTab(
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
-                    "Achievements",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    "ACHIEVEMENTS",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.height(Spacing.small))
@@ -905,7 +928,7 @@ fun SettingsTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.primary
                 ),
@@ -1013,15 +1036,13 @@ fun SettingsTab(
     //     }
     // }
 
-    // Developer Tools Section - Material 3 Expressive
+    // Developer Tools Section
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)), // Material 3 Expressive: More shadow, more rounded
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest), // Material 3 Expressive: Higher contrast
-        shape = RoundedCornerShape(20.dp), // Material 3 Expressive: More rounded (was 16dp)
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Material 3 Expressive: Higher elevation (was 4dp)
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)) // Material 3 Expressive: Thicker border (was 1dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
             Column(
                 modifier = Modifier
@@ -1068,10 +1089,12 @@ fun SettingsTab(
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
-                    "Developer Tools",
-                    style = MaterialTheme.typography.titleLarge, // Material 3 Expressive: Larger (was titleMedium)
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    "DEVELOPER TOOLS",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
                 Spacer(modifier = Modifier.height(Spacing.small))
@@ -1081,11 +1104,11 @@ fun SettingsTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     ),
-                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Icon(
                         Icons.Default.Timeline,
@@ -1114,11 +1137,11 @@ fun SettingsTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     ),
-                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Icon(
                         Icons.Default.MusicNote,
@@ -1174,7 +1197,11 @@ fun SettingsTab(
                         }
                         Switch(
                             checked = simulatorModeEnabled,
-                            onCheckedChange = { onSimulatorModeToggle(it) }
+                            onCheckedChange = { onSimulatorModeToggle(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedThumbColor = Color.White
+                            )
                         )
                     }
 
@@ -1191,15 +1218,13 @@ fun SettingsTab(
             }
         }
 
-    // App Info Section - Material 3 Expressive
+    // App Info Section
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(20.dp)), // Material 3 Expressive: More shadow, more rounded
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest), // Material 3 Expressive: Higher contrast
-        shape = RoundedCornerShape(20.dp), // Material 3 Expressive: More rounded (was 16dp)
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Material 3 Expressive: Higher elevation (was 4dp)
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)) // Material 3 Expressive: Thicker border (was 1dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
             Column(
                 modifier = Modifier
@@ -1226,10 +1251,12 @@ fun SettingsTab(
                 }
                 Spacer(modifier = Modifier.width(Spacing.medium))
                 Text(
-                    "App Info",
-                    style = MaterialTheme.typography.titleLarge, // Material 3 Expressive: Larger (was titleMedium)
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    "APP INFO",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
                 Spacer(modifier = Modifier.height(Spacing.small))
@@ -1244,37 +1271,35 @@ fun SettingsTab(
         }
     }
 
-    // Material 3 Expressive: Delete All dialog
+    // Delete All dialog
     if (showDeleteAllDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteAllDialog = false },
             title = {
                 Text(
                     "Delete All Workouts?",
-                    style = MaterialTheme.typography.headlineSmall, // Material 3 Expressive: Larger
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
                     "This will permanently delete all workout history. This action cannot be undone.",
-                    style = MaterialTheme.typography.bodyLarge // Material 3 Expressive: Larger
+                    style = MaterialTheme.typography.bodyLarge
                 )
             },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, // Material 3 Expressive: Higher contrast
-            shape = RoundedCornerShape(28.dp), // Material 3 Expressive: Very rounded for dialogs (was 16dp)
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp),
             confirmButton = {
                 TextButton(
                     onClick = {
                         onDeleteAllWorkouts()
                         showDeleteAllDialog = false
                     },
-                    modifier = Modifier.height(56.dp), // Material 3 Expressive: Taller button
-                    shape = RoundedCornerShape(20.dp) // Material 3 Expressive: More rounded
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         "Delete All",
-                        style = MaterialTheme.typography.titleLarge, // Material 3 Expressive: Larger text
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -1283,13 +1308,10 @@ fun SettingsTab(
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteAllDialog = false },
-                    modifier = Modifier.height(56.dp), // Material 3 Expressive: Taller button
-                    shape = RoundedCornerShape(20.dp) // Material 3 Expressive: More rounded
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         "Cancel",
-                        style = MaterialTheme.typography.titleMedium, // Material 3 Expressive: Larger text
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1318,7 +1340,7 @@ fun SettingsTab(
             onDismissRequest = { showSimulatorUnlockDialog = false },
             title = {
                 Text(
-                    "🔧 Developer Tools Unlocked!",
+                    "Developer Tools Unlocked!",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -1329,13 +1351,12 @@ fun SettingsTab(
                     style = MaterialTheme.typography.bodyLarge
                 )
             },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(12.dp),
             confirmButton = {
                 TextButton(
                     onClick = { showSimulatorUnlockDialog = false },
-                    modifier = Modifier.height(56.dp),
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         "Got it!",
@@ -1620,7 +1641,7 @@ private fun DiscoModeUnlockDialog(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         modifier = Modifier.scale(scale),
         containerColor = Color(0xFF1A1A2E),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(12.dp),
         title = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -1689,7 +1710,7 @@ private fun DiscoModeUnlockDialog(onDismiss: () -> Unit) {
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier.height(48.dp),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
                     "🎉 Let's Party!",
