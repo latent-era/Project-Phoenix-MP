@@ -24,6 +24,7 @@ import com.devil.phoenixproject.util.BlePacketFactory
 import com.devil.phoenixproject.util.Constants
 import com.devil.phoenixproject.util.DataBackupManager
 import com.devil.phoenixproject.util.KmpUtils
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -1562,6 +1563,7 @@ class ActiveSessionEngine(
         syncRoutineSessionContext()
 
         coordinator.workoutJob = scope.launch {
+            try {
             val params = coordinator._workoutParameters.value
 
             val currentExercise = coordinator._loadedRoutine.value?.exercises?.getOrNull(coordinator._currentExerciseIndex.value)
@@ -1865,6 +1867,13 @@ class ActiveSessionEngine(
                 coordinator._loadBaselineA.value = metric.loadA
                 coordinator._loadBaselineB.value = metric.loadB
                 Logger.d("ActiveSessionEngine") { "LOAD BASELINE: Set initial baseline loadA=${metric.loadA}kg, loadB=${metric.loadB}kg" }
+            }
+            } catch (e: CancellationException) {
+                throw e // let cancellation propagate
+            } catch (e: Exception) {
+                Logger.e(e) { "workoutJob: uncaught exception" }
+                coordinator._bleErrorEvents.tryEmit("Workout error: ${e.message}")
+                coordinator._workoutState.value = WorkoutState.Idle
             }
         }
     }
