@@ -36,6 +36,7 @@ import org.koin.compose.koinInject
 import com.devil.phoenixproject.presentation.components.CountdownDropdown
 import com.devil.phoenixproject.data.sync.talos.TalosApiClient
 import com.devil.phoenixproject.data.sync.talos.TalosConfig
+import com.devil.phoenixproject.data.sync.talos.TalosSyncService
 import com.devil.phoenixproject.ui.theme.*
 import com.devil.phoenixproject.util.KmpUtils
 
@@ -116,6 +117,9 @@ fun SettingsTab(
     var pairingCode by remember { mutableStateOf("") }
     var isPairing by remember { mutableStateOf(false) }
     var pairingError by remember { mutableStateOf<String?>(null) }
+    var isSyncing by remember { mutableStateOf(false) }
+    var syncResult by remember { mutableStateOf<String?>(null) }
+    val talosSyncService: TalosSyncService = koinInject()
     val pairingScope = rememberCoroutineScope()
 
     // Inject DataBackupManager
@@ -185,6 +189,41 @@ fun SettingsTab(
                             ) {
                                 Text("Disconnect")
                             }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // Sync Now button
+                        Button(
+                            onClick = {
+                                pairingScope.launch {
+                                    isSyncing = true
+                                    syncResult = null
+                                    val result = talosSyncService.syncAllWorkouts()
+                                    syncResult = if (result.isSuccess) {
+                                        "Synced ${result.getOrNull()} sessions"
+                                    } else {
+                                        "Sync failed: ${result.exceptionOrNull()?.message}"
+                                    }
+                                    isSyncing = false
+                                }
+                            },
+                            enabled = !isSyncing,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(if (isSyncing) "Syncing..." else "Sync Now")
+                        }
+                        if (syncResult != null) {
+                            Text(
+                                syncResult!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (syncResult!!.startsWith("Synced")) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
                     } else {
                         // Not paired state

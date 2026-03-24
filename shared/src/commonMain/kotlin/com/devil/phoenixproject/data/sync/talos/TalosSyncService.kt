@@ -51,6 +51,47 @@ class TalosSyncService(
             Logger.w { "TalosSync: Error during sync: ${e.message}" }
         }
     }
+
+    /**
+     * Sync ALL workout sessions to Talos VPS.
+     * Used for manual "Sync Now" — pushes all historical data.
+     * VPS uses upsert so duplicates are safe.
+     * Returns the number of sessions synced.
+     */
+    suspend fun syncAllWorkouts(): Result<Int> {
+        if (!config.isPaired) {
+            return Result.failure(Exception("Not paired with VPS"))
+        }
+
+        return try {
+            val allSessions = workoutRepository.getRecentSessionsSync(limit = 10000)
+            if (allSessions.isEmpty()) {
+                Logger.d { "TalosSync: No sessions to sync" }
+                return Result.success(0)
+            }
+
+            // Send in batches of 50
+            var totalSynced = 0
+            allSessions.chunked(50).forEach { batch ->
+                val payload = TalosWorkoutSyncRequest(
+                    sessions = batch.map { it.toTalosPayload() }
+                )
+                val result = apiClient.syncWorkout(payload)
+                if (result.isSuccess) {
+                    totalSynced += batch.size
+                    Logger.i { "TalosSync: Synced batch of ${batch.size} sessions" }
+                } else {
+                    Logger.w { "TalosSync: Batch sync failed: ${result.exceptionOrNull()?.message}" }
+                }
+            }
+
+            Logger.i { "TalosSync: Full sync complete — $totalSynced/${allSessions.size} sessions" }
+            Result.success(totalSynced)
+        } catch (e: Exception) {
+            Logger.w { "TalosSync: Full sync error: ${e.message}" }
+            Result.failure(e)
+        }
+    }
 }
 
 /**
