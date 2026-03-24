@@ -801,9 +801,9 @@ class SqlDelightSyncRepository(
         }
     }
 
-    override suspend fun getFullCyclesForSync(): List<CycleWithContext> {
+    override suspend fun getFullCyclesForSync(profileId: String): List<CycleWithContext> {
         return withContext(Dispatchers.IO) {
-            val cycles = queries.selectAllTrainingCyclesSync().executeAsList()
+            val cycles = queries.selectTrainingCyclesByProfile(profileId = profileId).executeAsList()
             val allDays = queries.selectAllCycleDaysSync().executeAsList()
             val allProgress = queries.selectAllCycleProgressSync().executeAsList()
             val allProgressions = queries.selectAllCycleProgressionsSync().executeAsList()

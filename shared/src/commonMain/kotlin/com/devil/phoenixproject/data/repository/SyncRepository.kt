@@ -67,10 +67,10 @@ interface SyncRepository {
     suspend fun getFullRoutinesModifiedSince(timestamp: Long, profileId: String = "default"): List<Routine>
 
     /**
-     * Get all training cycles with their progress and progression context for push.
-     * Returns all cycles (no delta — cycles lack updatedAt timestamps).
+     * Get training cycles scoped to the given profile, with progress and progression context for push.
+     * Returns all matching cycles (no delta — cycles lack updatedAt timestamps).
      */
-    suspend fun getFullCyclesForSync(): List<CycleWithContext>
+    suspend fun getFullCyclesForSync(profileId: String = "default"): List<CycleWithContext>
 
     /**
      * Get full PersonalRecord domain objects modified since timestamp, scoped to profile.

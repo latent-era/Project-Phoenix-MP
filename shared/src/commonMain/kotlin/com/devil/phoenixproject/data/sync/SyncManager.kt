@@ -89,6 +89,12 @@ class SyncManager(
 
         _syncState.value = SyncState.Syncing
 
+        // Capture the pre-push lastSync timestamp BEFORE pushing. In the batched path,
+        // each batch updates the sync timestamp, so by the time post-push stamping runs,
+        // getLastSyncTimestamp() would reflect the LAST batch -- not the original value.
+        // Sessions from earlier batches would be missed by the re-query.
+        val prePushLastSync = tokenStorage.getLastSyncTimestamp()
+
         // Push local changes (no status check -- Railway backend abandoned)
         Logger.i("SyncManager") { "Token expired: ${tokenStorage.isTokenExpired()}, expiresAt: ${tokenStorage.getExpiresAt()}" }
         val pushResult = pushLocalChanges()
@@ -112,10 +118,11 @@ class SyncManager(
 
         // Stamp pushed sessions so they aren't re-sent on next sync.
         // Sessions with NULL updatedAt would match every delta query indefinitely.
+        // Use prePushLastSync (captured before push) so batched push doesn't cause
+        // earlier-batch sessions to be missed by the re-query.
         val stampTime = currentTimeMillis()
         val activeProfileId = userProfileRepository.activeProfile.value?.id ?: "default"
-        val lastSyncForStamp = tokenStorage.getLastSyncTimestamp()
-        val pushedSessions = syncRepository.getWorkoutSessionsModifiedSince(lastSyncForStamp, activeProfileId)
+        val pushedSessions = syncRepository.getWorkoutSessionsModifiedSince(prePushLastSync, activeProfileId)
         pushedSessions.forEach { session ->
             syncRepository.updateSessionTimestamp(session.id, stampTime)
         }
@@ -183,8 +190,8 @@ class SyncManager(
         val routines = syncRepository.getFullRoutinesModifiedSince(lastSync, activeProfileId)
             .filterNot { it.id.startsWith("cycle_routine_") }
 
-        // 4b. Gather training cycles (all — no delta, lacks updatedAt)
-        val cyclesWithContext = syncRepository.getFullCyclesForSync()
+        // 4b. Gather training cycles (all — no delta, lacks updatedAt), profile-scoped
+        val cyclesWithContext = syncRepository.getFullCyclesForSync(activeProfileId)
 
         // 5. Gather gamification data
         val rpgInput = gamificationRepository.getRpgInput()

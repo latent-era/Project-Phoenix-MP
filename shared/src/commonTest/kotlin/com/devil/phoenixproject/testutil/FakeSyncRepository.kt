@@ -131,9 +131,17 @@ class FakeSyncRepository : SyncRepository {
         mergedPortalRoutinesLastSync = lastSync
     }
 
+    // === Post-Push Stamping ===
+
+    var updatedSessionTimestamps: MutableMap<String, Long> = mutableMapOf()
+
+    override suspend fun updateSessionTimestamp(sessionId: String, timestamp: Long) {
+        updatedSessionTimestamps[sessionId] = timestamp
+    }
+
     // === Stubs for new sync interface methods (added for cycle/PR/phase/signature/assessment sync) ===
 
-    override suspend fun getFullCyclesForSync(): List<CycleWithContext> = emptyList()
+    override suspend fun getFullCyclesForSync(profileId: String): List<CycleWithContext> = emptyList()
 
     override suspend fun getFullPRsModifiedSince(timestamp: Long, profileId: String): List<PersonalRecord> = emptyList()
 

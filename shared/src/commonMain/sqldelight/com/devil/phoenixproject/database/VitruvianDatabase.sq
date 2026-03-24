@@ -1504,9 +1504,13 @@ SELECT * FROM Exercise WHERE TRIM(name) = TRIM(?) LIMIT 1;
 -- ==================== BACKUP SYNC QUERIES ====================
 -- These queries select all data from tables for backup/restore functionality
 
--- Backup sync queries for training cycle related tables
+-- Backup sync queries for training cycle related tables (all profiles for backup/restore)
 selectAllTrainingCyclesSync:
 SELECT * FROM TrainingCycle;
+
+-- Profile-scoped training cycle query for sync push (prevents cross-profile leak)
+selectTrainingCyclesByProfile:
+SELECT * FROM TrainingCycle WHERE profile_id = :profileId;
 
 selectAllCycleDaysSync:
 SELECT * FROM CycleDay;
@@ -1703,7 +1707,7 @@ AND profile_id = :profileId;
 updateRoutineServerId:
 UPDATE Routine SET serverId = ? WHERE id = ?;
 
--- Get custom exercises modified since last sync
+-- Custom exercises are global (no profile_id column) - intentionally unscoped
 selectCustomExercisesModifiedSince:
 SELECT * FROM Exercise
 WHERE isCustom = 1 AND (updatedAt > ? OR updatedAt IS NULL) AND deletedAt IS NULL;
@@ -1712,7 +1716,7 @@ WHERE isCustom = 1 AND (updatedAt > ? OR updatedAt IS NULL) AND deletedAt IS NUL
 updateExerciseServerId:
 UPDATE Exercise SET serverId = ? WHERE id = ?;
 
--- Get badges modified since last sync
+-- Badges are global (no profile_id column) - intentionally unscoped
 selectBadgesModifiedSince:
 SELECT * FROM EarnedBadge
 WHERE (updatedAt > ? OR updatedAt IS NULL) AND deletedAt IS NULL;
