@@ -15,10 +15,10 @@ progress:
 
 ## Current Position
 
-Phase: 34 of 36 (executed, pending review)
+Phase: 34 of 36 (complete)
 Plan: —
-Status: Phase 34 complete — all 3 plans executed successfully
-Last activity: 2026-03-23 — Phase 34 Lifecycle & Security executed
+Status: Phase 34 complete — review passed (2 cycles)
+Last activity: 2026-03-23 — Phase 34 Lifecycle & Security review passed
 
 ## Progress
 ```
@@ -60,7 +60,7 @@ See: .planning/PROJECT.md (updated 2026-03-23)
 
 ## Next Action
 
-Run `/legion:review` to verify Phase 34, or `/legion:plan 35` for Phase 35: iOS Platform Parity
+Run `/legion:plan 35` to plan Phase 35: iOS Platform Parity
 
 ---
 *Last updated: 2026-03-23 — v0.8.0 Beta Readiness initialized*
