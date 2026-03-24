@@ -514,22 +514,22 @@ fun ExerciseConfigScreen(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                    .height(48.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
                     "Cancel",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Button(
                 onClick = { configViewModel.onSave(onSave) },
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp),
+                    .height(48.dp),
                 enabled = sets.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

@@ -147,7 +147,7 @@ fun HomeScreen(
                             iconColor = MetricSleep,
                             label = "Last Workout",
                             value = lastExercise.take(12),
-                            unit = null,
+                            unit = "",
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -399,13 +399,11 @@ private fun QuickStatCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            if (unit != null) {
-                Text(
-                    text = unit,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TalosTextSecondary
-                )
-            }
+            Text(
+                text = unit ?: "",
+                style = MaterialTheme.typography.bodySmall,
+                color = TalosTextSecondary
+            )
         }
     }
 }

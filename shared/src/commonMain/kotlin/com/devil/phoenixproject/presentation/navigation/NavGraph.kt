@@ -446,7 +446,7 @@ fun NavGraph(
                     onCancel = {
                         navController.popBackStack() // Back to ExerciseSelector
                     },
-                    buttonText = if (isNewExerciseState) "Add to Routine" else "Save",
+                    buttonText = if (isNewExerciseState) "Add" else "Save",
                 )
             } ?: run {
                 // No exercise to configure - pop back
