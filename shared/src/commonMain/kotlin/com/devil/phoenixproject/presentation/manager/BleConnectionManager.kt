@@ -38,11 +38,8 @@ class BleConnectionManager(
 ) {
     val connectionState: StateFlow<ConnectionState> = bleRepository.connectionState
 
-    // Note: _scannedDevices in MainViewModel was never populated (dead code).
-    // Preserving the same pattern during extraction. The real scanned devices
-    // are in bleRepository.scannedDevices.
-    private val _scannedDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
-    val scannedDevices: StateFlow<List<ScannedDevice>> = _scannedDevices.asStateFlow()
+    // Delegate directly to the repository's scanned devices (populated by KableBleConnectionManager)
+    val scannedDevices: StateFlow<List<ScannedDevice>> = bleRepository.scannedDevices
 
     private val _isAutoConnecting = MutableStateFlow(false)
     val isAutoConnecting: StateFlow<Boolean> = _isAutoConnecting.asStateFlow()
@@ -95,6 +92,25 @@ class BleConnectionManager(
                     else -> {
                         // Scanning, Connecting - don't change wasConnected or alert state
                     }
+                }
+            }
+        }
+
+        // B2 fix: Collect reconnection requests from the BLE layer.
+        // KableBleConnectionManager emits these when a peripheral disconnects unexpectedly.
+        // We only attempt auto-reconnect during active workouts to avoid spurious reconnects
+        // on intentional disconnections or idle screens.
+        scope.launch {
+            bleRepository.reconnectionRequested.collect { request ->
+                Logger.w { "Auto-reconnect requested: ${request.deviceName} (reason: ${request.reason})" }
+                if (workoutStateProvider.isWorkoutActiveForConnectionAlert) {
+                    delay(1500L) // BLE stack cooldown — Android needs time to release GATT resources
+                    ensureConnection(
+                        onConnected = { Logger.i { "Auto-reconnect succeeded for ${request.deviceName}" } },
+                        onFailed = { Logger.w { "Auto-reconnect failed for ${request.deviceName}" } }
+                    )
+                } else {
+                    Logger.d { "Ignoring reconnection request — no active workout" }
                 }
             }
         }
