@@ -468,7 +468,7 @@ private fun ConnectionStatusIndicator(
 
     // Static colors for non-connecting states
     val blueColor = MaterialTheme.colorScheme.primary
-    val greenColor = Color(0xFF22C55E)
+    val greenColor = Color(0xFFFB7185)
     val redColor = Color(0xFFEF4444)
 
     Box(

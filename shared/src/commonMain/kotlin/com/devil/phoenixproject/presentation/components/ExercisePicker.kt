@@ -283,6 +283,7 @@ fun ExercisePickerDialog(
             onDismissRequest = onDismiss,
             sheetState = sheetState,
             modifier = modifier,
+            dragHandle = null,
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
         ) {

@@ -357,7 +357,8 @@ fun RoutineEditorScreen(
                     onClick = { showExercisePicker = true },
                     icon = { Icon(Icons.Default.Add, null) },
                     text = { Text("Add Exercise") },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
                 )
             }
         }

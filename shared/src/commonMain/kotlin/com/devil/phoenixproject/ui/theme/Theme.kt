@@ -12,19 +12,19 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 private val DarkColorScheme = darkColorScheme(
     // Primary (Rose)
     primary = Primary80,
-    onPrimary = Primary20,
+    onPrimary = Color.White,
     primaryContainer = PrimaryContainerDark,
-    onPrimaryContainer = OnPrimaryContainerDark,
+    onPrimaryContainer = Color.White,
 
     // Secondary (Rose Light)
     secondary = Secondary80,
-    onSecondary = Secondary20,
+    onSecondary = Color.White,
     secondaryContainer = SecondaryContainerDark,
     onSecondaryContainer = OnSecondaryContainerDark,
 
     // Tertiary (Neutral Grey)
     tertiary = Tertiary80,
-    onTertiary = Tertiary20,
+    onTertiary = Color.White,
     tertiaryContainer = Slate700,
     onTertiaryContainer = Slate200,
 
