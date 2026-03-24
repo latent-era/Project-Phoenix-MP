@@ -588,18 +588,23 @@ abstract class BaseDataBackupManager(
                 // Import personal records
                 backup.data.personalRecords.forEach { pr ->
                     if (pr.id !in existingPRIds) {
-                        queries.insertRecord(
-                            exerciseId = pr.exerciseId,
-                            exerciseName = pr.exerciseName,
-                            weight = pr.weight.toDouble(),
-                            reps = pr.reps.toLong(),
-                            oneRepMax = pr.oneRepMax.toDouble(),
-                            achievedAt = pr.achievedAt,
-                            workoutMode = pr.workoutMode,
-                            prType = pr.prType,
-                            volume = pr.volume.toDouble()
-                        )
-                        personalRecordsImported++
+                        try {
+                            queries.insertRecord(
+                                exerciseId = pr.exerciseId,
+                                exerciseName = pr.exerciseName,
+                                weight = pr.weight.toDouble(),
+                                reps = pr.reps.toLong(),
+                                oneRepMax = pr.oneRepMax.toDouble(),
+                                achievedAt = pr.achievedAt,
+                                workoutMode = pr.workoutMode,
+                                prType = pr.prType,
+                                volume = pr.volume.toDouble()
+                            )
+                            personalRecordsImported++
+                        } catch (_: Exception) {
+                            // Skip duplicate PRs (unique constraint on exerciseId+workoutMode+prType)
+                            personalRecordsSkipped++
+                        }
                     } else {
                         personalRecordsSkipped++
                     }
