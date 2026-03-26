@@ -38,6 +38,7 @@ data class TalosWorkoutSessionPayload(
 @Serializable
 data class TalosWorkoutSetPayload(
     @SerialName("set_number") val setNumber: Int,
+    @SerialName("exercise_name") val exerciseName: String? = null,
     @SerialName("set_type") val setType: String = "working",
     @SerialName("actual_reps") val actualReps: Int? = null,
     @SerialName("actual_weight_kg") val actualWeightKg: Double? = null,

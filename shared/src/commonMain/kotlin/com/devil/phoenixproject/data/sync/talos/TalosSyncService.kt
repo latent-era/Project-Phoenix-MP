@@ -20,8 +20,9 @@ class TalosSyncService(
     private val workoutRepository: WorkoutRepository,
 ) {
     /**
-     * Sync the most recently saved workout session to Talos.
-     * Called from [SyncTriggerManager.onWorkoutCompleted].
+     * Sync the most recently saved workout set to Talos.
+     * If the set belongs to a routine, all sets from that routine session
+     * are grouped into a single session payload.
      */
     suspend fun syncLatestWorkout() {
         if (!config.isPaired) {
@@ -31,21 +32,29 @@ class TalosSyncService(
 
         try {
             val sessions = workoutRepository.getRecentSessionsSync(limit = 1)
-            val session = sessions.firstOrNull()
-            if (session == null) {
+            val latest = sessions.firstOrNull()
+            if (latest == null) {
                 Logger.d { "TalosSync: No recent session to sync" }
                 return
             }
 
+            // If this set belongs to a routine, fetch all sets from the same routine session
+            val toSync = if (latest.routineSessionId != null) {
+                workoutRepository.getRecentSessionsSync(limit = 500)
+                    .filter { it.routineSessionId == latest.routineSessionId }
+            } else {
+                listOf(latest)
+            }
+
             val payload = TalosWorkoutSyncRequest(
-                sessions = listOf(session.toTalosPayload())
+                sessions = groupAndConvert(toSync)
             )
 
             val result = apiClient.syncWorkout(payload)
             if (result.isSuccess) {
-                Logger.i { "TalosSync: Successfully synced session ${session.id}" }
+                Logger.i { "TalosSync: Successfully synced ${toSync.size} sets as ${payload.sessions.size} session(s)" }
             } else {
-                Logger.w { "TalosSync: Failed to sync session ${session.id}: ${result.exceptionOrNull()?.message}" }
+                Logger.w { "TalosSync: Failed to sync: ${result.exceptionOrNull()?.message}" }
             }
         } catch (e: Exception) {
             Logger.w { "TalosSync: Error during sync: ${e.message}" }
@@ -55,8 +64,8 @@ class TalosSyncService(
     /**
      * Sync ALL workout sessions to Talos VPS.
      * Used for manual "Sync Now" — pushes all historical data.
+     * Sets are grouped by routine session before sending.
      * VPS uses upsert so duplicates are safe.
-     * Returns the number of sessions synced.
      */
     suspend fun syncAllWorkouts(): Result<Int> {
         if (!config.isPaired) {
@@ -70,12 +79,13 @@ class TalosSyncService(
                 return Result.success(0)
             }
 
+            val grouped = groupAndConvert(allSessions)
+            Logger.i { "TalosSync: Grouped ${allSessions.size} sets into ${grouped.size} sessions" }
+
             // Send in batches of 50
             var totalSynced = 0
-            allSessions.chunked(50).forEach { batch ->
-                val payload = TalosWorkoutSyncRequest(
-                    sessions = batch.map { it.toTalosPayload() }
-                )
+            grouped.chunked(50).forEach { batch ->
+                val payload = TalosWorkoutSyncRequest(sessions = batch)
                 val result = apiClient.syncWorkout(payload)
                 if (result.isSuccess) {
                     totalSynced += batch.size
@@ -85,7 +95,7 @@ class TalosSyncService(
                 }
             }
 
-            Logger.i { "TalosSync: Full sync complete — $totalSynced/${allSessions.size} sessions" }
+            Logger.i { "TalosSync: Full sync complete — $totalSynced/${grouped.size} sessions" }
             Result.success(totalSynced)
         } catch (e: Exception) {
             Logger.w { "TalosSync: Full sync error: ${e.message}" }
@@ -95,7 +105,55 @@ class TalosSyncService(
 }
 
 /**
+ * Group sets by routineSessionId into logical sessions.
+ * Sets without a routineSessionId are sent individually (ad-hoc lifts).
+ */
+private fun groupAndConvert(sessions: List<WorkoutSession>): List<TalosWorkoutSessionPayload> {
+    val (routineSets, singleSets) = sessions.partition { it.routineSessionId != null }
+
+    val grouped = routineSets.groupBy { it.routineSessionId!! }
+        .map { (routineSessionId, sets) ->
+            val sorted = sets.sortedBy { it.timestamp }
+            val first = sorted.first()
+            val last = sorted.last()
+            val totalDurationMs = (last.timestamp + last.duration) - first.timestamp
+
+            TalosWorkoutSessionPayload(
+                externalId = routineSessionId,
+                exerciseName = first.routineName ?: "Workout",
+                startedAt = formatTimestamp(first.timestamp),
+                endedAt = formatTimestamp(last.timestamp + last.duration),
+                durationSeconds = if (totalDurationMs > 0) (totalDurationMs / 1000).toInt() else null,
+                totalReps = sorted.sumOf { it.totalReps }.takeIf { it > 0 },
+                totalVolumeKg = sorted.mapNotNull { it.totalVolumeKg?.toDouble() }.sum().takeIf { it > 0 },
+                calories = sorted.mapNotNull { it.estimatedCalories?.toDouble() }.sum().takeIf { it > 0 },
+                sets = sorted.mapIndexed { index, set -> set.toSetPayload(index + 1) },
+            )
+        }
+
+    val singles = singleSets.map { it.toTalosPayload() }
+
+    return grouped + singles
+}
+
+/**
+ * Convert a single set to a [TalosWorkoutSetPayload] for inclusion in a grouped session.
+ */
+private fun WorkoutSession.toSetPayload(setNumber: Int): TalosWorkoutSetPayload {
+    return TalosWorkoutSetPayload(
+        setNumber = setNumber,
+        exerciseName = exerciseName,
+        setType = if (warmupReps > 0 && workingReps == 0) "warmup" else "working",
+        actualReps = if (totalReps > 0) totalReps else null,
+        actualWeightKg = weightPerCableKg.toDouble(),
+        rpe = rpe?.toDouble(),
+        volumeKg = totalVolumeKg?.toDouble(),
+    )
+}
+
+/**
  * Convert a Phoenix [WorkoutSession] to the Talos API payload format.
+ * Used for ad-hoc single sets that don't belong to a routine.
  */
 private fun WorkoutSession.toTalosPayload(): TalosWorkoutSessionPayload {
     val startedAt = formatTimestamp(timestamp)
