@@ -11,20 +11,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.devil.phoenixproject.data.repository.ExerciseRepository
 import com.devil.phoenixproject.domain.model.PersonalRecord
 import com.devil.phoenixproject.domain.model.WeightUnit
 import com.devil.phoenixproject.domain.model.WorkoutSession
-import com.devil.phoenixproject.presentation.components.charts.HistoryTimePeriod
-import com.devil.phoenixproject.domain.model.currentTimeMillis
 import com.devil.phoenixproject.ui.theme.Spacing
 import com.devil.phoenixproject.presentation.components.*
 import com.devil.phoenixproject.presentation.util.ResponsiveDimensions
-import kotlinx.datetime.*
 
 /**
  * Wrapper composable that constrains card width on tablets to prevent over-stretching.
@@ -59,33 +54,9 @@ private fun ResponsiveCardWrapper(
 fun InsightsTab(
     prs: List<PersonalRecord>,
     workoutSessions: List<WorkoutSession>,
-    exerciseRepository: ExerciseRepository,
     modifier: Modifier = Modifier,
-    weightUnit: WeightUnit = WeightUnit.KG,
-    formatWeight: (Float, WeightUnit) -> String = { w, u -> "${w.toInt()} ${u.name.lowercase()}" }
+    weightUnit: WeightUnit = WeightUnit.KG
 ) {
-    var selectedPeriod by remember { mutableStateOf(HistoryTimePeriod.ALL) }
-
-    // Filter sessions by selected time period
-    val filteredSessions = remember(workoutSessions, selectedPeriod) {
-        if (selectedPeriod == HistoryTimePeriod.ALL) {
-            workoutSessions
-        } else {
-            val now = Instant.fromEpochMilliseconds(currentTimeMillis())
-            val cutoff = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
-                .let { today ->
-                    when (selectedPeriod) {
-                        HistoryTimePeriod.DAYS_7 -> today.minus(7, DateTimeUnit.DAY)
-                        HistoryTimePeriod.DAYS_14 -> today.minus(14, DateTimeUnit.DAY)
-                        HistoryTimePeriod.DAYS_30 -> today.minus(30, DateTimeUnit.DAY)
-                        HistoryTimePeriod.ALL -> today // unreachable
-                    }
-                }
-            val cutoffEpoch = cutoff.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
-            workoutSessions.filter { it.timestamp >= cutoffEpoch }
-        }
-    }
-
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -109,47 +80,11 @@ fun InsightsTab(
             )
         }
 
-        // Time period filter chips
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                HistoryTimePeriod.entries.forEach { period ->
-                    val isSelected = selectedPeriod == period
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { selectedPeriod = period },
-                        label = {
-                            Text(
-                                period.label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (isSelected) Color.White
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.White,
-                            containerColor = Color.Transparent
-                        ),
-                        border = if (!isSelected) FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = false,
-                            borderColor = MaterialTheme.colorScheme.outlineVariant,
-                            borderWidth = 1.dp
-                        ) else null
-                    )
-                }
-            }
-        }
-
-        // This Week Summary Card - week-over-week comparison
+        // 1. This Week Summary Card - week-over-week comparison
         item {
             ResponsiveCardWrapper {
                 ThisWeekSummaryCard(
-                    workoutSessions = filteredSessions,
+                    workoutSessions = workoutSessions,
                     personalRecords = prs,
                     weightUnit = weightUnit,
                     modifier = Modifier.fillMaxWidth()
@@ -157,35 +92,12 @@ fun InsightsTab(
             }
         }
 
-        // 1. Muscle Balance Radar Chart (Replaces linear progress bars)
-        if (prs.isNotEmpty()) {
+        // 2. Progressive Overload Card - heaviest weight per exercise over time
+        if (workoutSessions.any { it.exerciseId != null }) {
             item {
                 ResponsiveCardWrapper {
-                    MuscleBalanceRadarCard(
-                        personalRecords = prs,
-                        exerciseRepository = exerciseRepository,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-
-        // 2. Workout Consistency Gauge (Replaces circular progress)
-        item {
-            ResponsiveCardWrapper {
-                ConsistencyGaugeCard(
-                    workoutSessions = filteredSessions,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-
-        // 3. Volume vs Intensity Combo Chart (New Metric)
-        if (filteredSessions.isNotEmpty()) {
-            item {
-                ResponsiveCardWrapper {
-                    VolumeVsIntensityCard(
-                        workoutSessions = filteredSessions,
+                    ProgressiveOverloadCard(
+                        workoutSessions = workoutSessions,
                         weightUnit = weightUnit,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -193,26 +105,25 @@ fun InsightsTab(
             }
         }
 
-        // 4. Total Volume Trend (User Request)
-        if (filteredSessions.isNotEmpty()) {
+        // 3. Workout Frequency Card - sessions per week bar chart
+        if (workoutSessions.isNotEmpty()) {
             item {
                 ResponsiveCardWrapper {
-                    TotalVolumeCard(
-                        workoutSessions = filteredSessions,
-                        weightUnit = weightUnit,
-                        formatWeight = formatWeight,
+                    WorkoutFrequencyCard(
+                        workoutSessions = workoutSessions,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
         }
 
-        // 5. Mode Distribution Donut Chart (New Metric)
-        if (filteredSessions.isNotEmpty()) {
+        // 4. Volume By Exercise Card - top exercises by total volume
+        if (workoutSessions.any { it.exerciseId != null }) {
             item {
                 ResponsiveCardWrapper {
-                    WorkoutModeDistributionCard(
-                        workoutSessions = filteredSessions,
+                    VolumeByExerciseCard(
+                        workoutSessions = workoutSessions,
+                        weightUnit = weightUnit,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
