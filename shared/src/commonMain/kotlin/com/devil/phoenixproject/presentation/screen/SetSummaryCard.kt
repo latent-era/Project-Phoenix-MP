@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.devil.phoenixproject.domain.model.ProgressionDirection
+import com.devil.phoenixproject.domain.model.ProgressionSuggestion
 import com.devil.phoenixproject.domain.model.WeightUnit
 import com.devil.phoenixproject.domain.model.WorkoutState
 import com.devil.phoenixproject.presentation.components.RpeIndicator
@@ -36,7 +38,8 @@ fun SetSummaryCard(
     onRpeLogged: ((Int) -> Unit)? = null,  // Optional RPE callback
     isHistoryView: Boolean = false,  // Hide interactive elements when viewing from history
     savedRpe: Int? = null,  // Show saved RPE value in history view
-    buttonLabel: String = "Done"  // Contextual label: "Next Set", "Next Exercise", "Complete Routine"
+    buttonLabel: String = "Done",  // Contextual label: "Next Set", "Next Exercise", "Complete Routine"
+    onProgressionApplied: ((ProgressionSuggestion) -> Unit)? = null  // Auto-progression callback
 ) {
     // State for RPE tracking
     var loggedRpe by remember { mutableStateOf<Int?>(null) }
@@ -292,6 +295,66 @@ fun SetSummaryCard(
                             onRpeChanged = { rpe ->
                                 loggedRpe = rpe
                                 onRpeLogged(rpe)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Auto-Progression suggestion card
+        if (!isHistoryView && summary.progressionSuggestion != null) {
+            val suggestion = summary.progressionSuggestion!!
+            var applyProgression by remember(suggestion) {
+                mutableStateOf(suggestion.direction == ProgressionDirection.INCREASE)
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        val (icon, tint) = when (suggestion.direction) {
+                            ProgressionDirection.INCREASE -> Icons.Default.TrendingUp to Color(0xFF4CAF50)
+                            ProgressionDirection.HOLD -> Icons.Default.TrendingFlat to MaterialTheme.colorScheme.onSurfaceVariant
+                            ProgressionDirection.DECREASE -> Icons.Default.TrendingDown to Color(0xFFFFA726)
+                        }
+                        Icon(
+                            icon,
+                            contentDescription = suggestion.direction.name,
+                            tint = tint,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            suggestion.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    if (onProgressionApplied != null) {
+                        Switch(
+                            checked = applyProgression,
+                            onCheckedChange = { checked ->
+                                applyProgression = checked
+                                if (checked) {
+                                    onProgressionApplied(suggestion)
+                                }
                             }
                         )
                     }
