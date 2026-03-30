@@ -200,9 +200,8 @@ fun ProgressTab(
             }
         }
 
-        // Bottom padding for FAB
         item {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -423,26 +422,7 @@ fun AnalyticsScreen(
             )
         }
 
-        // Export FAB
-        // TODO: Export functionality needs platform-specific context implementation
-        FloatingActionButton(
-            onClick = { showExportMenu = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(Spacing.large),
-            containerColor = MaterialTheme.colorScheme.primary,
-            shape = RoundedCornerShape(12.dp),
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 0.dp,
-                pressedElevation = 0.dp
-            )
-        ) {
-            Icon(
-                Icons.Default.Share,
-                contentDescription = "Export data",
-                modifier = Modifier.size(fabIconSize) // Material 3 Expressive: Responsive icon size
-            )
-        }
+        // Export FAB removed — was blocking analytics content and export is unimplemented
     }
 
     // Export options dialog

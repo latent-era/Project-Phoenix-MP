@@ -1884,13 +1884,15 @@ private data class MuscleGroupVolume(
     val zone: String get() = when {
         sets >= 10 -> "Focus"
         sets >= 5 -> "Growth"
-        else -> "Maintaining"
+        sets >= 1 -> "Maintaining"
+        else -> "Not trained"
     }
 
     val zoneColor: Color get() = when {
         sets >= 10 -> Color(0xFFD4A017)  // gold
         sets >= 5 -> Color(0xFF4CAF50)   // green
-        else -> Color(0xFF42A5F5)        // blue
+        sets >= 1 -> Color(0xFF42A5F5)   // blue
+        else -> Color(0xFF9E9E9E)        // grey
     }
 }
 
