@@ -20,12 +20,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -1519,4 +1523,252 @@ private fun getMonthShortName(month: Int): String {
 private fun getDayOfWeekIso(date: KmpLocalDate): Int {
     val localDate = kotlinx.datetime.LocalDate(date.year, date.month, date.dayOfMonth)
     return localDate.dayOfWeek.ordinal + 1 // DayOfWeek.MONDAY.ordinal is 0
+}
+
+// ---------------------------------------------------------------------------
+// Progressive Overload Card
+// ---------------------------------------------------------------------------
+
+/**
+ * Progressive Overload Card -- shows the heaviest working-set weight per
+ * session date for a user-selected exercise, rendered as a line chart.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProgressiveOverloadCard(
+    workoutSessions: List<WorkoutSession>,
+    weightUnit: WeightUnit,
+    modifier: Modifier = Modifier
+) {
+    // Collect distinct exercises that have an exerciseId
+    val exercises = remember(workoutSessions) {
+        workoutSessions
+            .filter { it.exerciseId != null }
+            .groupBy { it.exerciseId!! }
+            .map { (id, sessions) ->
+                val name = sessions.firstNotNullOfOrNull { it.exerciseName } ?: id
+                id to name
+            }
+            .sortedBy { it.second.lowercase() }
+    }
+
+    var selectedExerciseId by remember(exercises) {
+        mutableStateOf(exercises.firstOrNull()?.first)
+    }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+
+    val selectedName = exercises.firstOrNull { it.first == selectedExerciseId }?.second ?: ""
+
+    // Build chart data: heaviest weight per session date for selected exercise
+    val chartData = remember(workoutSessions, selectedExerciseId, weightUnit) {
+        if (selectedExerciseId == null) return@remember emptyList<Pair<String, Float>>()
+        val filtered = workoutSessions.filter { it.exerciseId == selectedExerciseId }
+        // Group by date string, pick heaviest weight per cable in each date bucket
+        filtered
+            .groupBy { KmpUtils.formatTimestamp(it.timestamp, "MMM d") }
+            .map { (dateLabel, sessions) ->
+                val heaviest = sessions.maxOf { it.effectiveHeaviestKgPerCable() * 2f }
+                val adjusted = if (weightUnit == WeightUnit.LB) heaviest * 2.20462f else heaviest
+                dateLabel to adjusted
+            }
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Progressive Overload",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Heaviest working set per session",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (exercises.isEmpty()) {
+                Text(
+                    "No exercise data available yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 32.dp)
+                )
+            } else {
+                // Exercise dropdown
+                ExposedDropdownMenuBox(
+                    expanded = dropdownExpanded,
+                    onExpandedChange = { dropdownExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Exercise") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded)
+                        },
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false }
+                    ) {
+                        exercises.forEach { (id, name) ->
+                            DropdownMenuItem(
+                                text = { Text(name) },
+                                onClick = {
+                                    selectedExerciseId = id
+                                    dropdownExpanded = false
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (chartData.size >= 2) {
+                    OverloadLineChart(
+                        data = chartData,
+                        weightUnit = weightUnit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
+                } else {
+                    Text(
+                        "Need at least 2 sessions to chart progression.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 24.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Canvas-based line chart for progressive overload data.
+ * Uses Compose Multiplatform text drawing (TextMeasurer) -- no Android-only APIs.
+ */
+@Composable
+fun OverloadLineChart(
+    data: List<Pair<String, Float>>, // label to weight
+    weightUnit: WeightUnit,
+    modifier: Modifier = Modifier,
+    lineColor: Color = MaterialTheme.colorScheme.primary,
+    fillColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+) {
+    if (data.size < 2) return
+
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+    val unitSuffix = if (weightUnit == WeightUnit.LB) "lb" else "kg"
+
+    val values = data.map { it.second }
+    val minVal = values.min()
+    val maxVal = values.max()
+    val range = (maxVal - minVal).coerceAtLeast(1f)
+    val yPad = range * 0.1f
+    val yMin = (minVal - yPad).coerceAtLeast(0f)
+    val yMax = maxVal + yPad
+    val yRange = yMax - yMin
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val bottomPad = 22.dp.toPx()
+        val chartH = h - bottomPad
+
+        val xStep = w / (data.size - 1).coerceAtLeast(1)
+
+        // Grid lines (3 horizontal)
+        for (i in 0..2) {
+            val y = chartH * i / 2f
+            drawLine(gridColor, Offset(0f, y), Offset(w, y))
+        }
+
+        // Build paths
+        val linePath = Path()
+        val fillPath = Path()
+
+        data.forEachIndexed { idx, (_, value) ->
+            val x = idx * xStep
+            val normY = (value - yMin) / yRange
+            val y = chartH - (normY * chartH)
+
+            if (idx == 0) {
+                linePath.moveTo(x, y)
+                fillPath.moveTo(x, chartH)
+                fillPath.lineTo(x, y)
+            } else {
+                linePath.lineTo(x, y)
+                fillPath.lineTo(x, y)
+            }
+
+            // Data point
+            drawCircle(lineColor, radius = 4.dp.toPx(), center = Offset(x, y))
+            drawCircle(Color.White, radius = 2.dp.toPx(), center = Offset(x, y))
+        }
+
+        fillPath.lineTo(w, chartH)
+        fillPath.close()
+
+        // Draw fill gradient
+        drawPath(
+            fillPath,
+            brush = Brush.verticalGradient(
+                listOf(fillColor, fillColor.copy(alpha = 0f)),
+                startY = 0f,
+                endY = chartH
+            )
+        )
+
+        // Draw line
+        drawPath(linePath, lineColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+
+        // Y-axis labels (min / max)
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "${maxVal.roundToInt()} $unitSuffix",
+            style = labelStyle.merge(TextStyle(color = labelColor)),
+            topLeft = Offset(4f, 4f)
+        )
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "${minVal.roundToInt()} $unitSuffix",
+            style = labelStyle.merge(TextStyle(color = labelColor)),
+            topLeft = Offset(4f, chartH - 16.dp.toPx())
+        )
+
+        // X-axis labels (first and last)
+        drawText(
+            textMeasurer = textMeasurer,
+            text = data.first().first,
+            style = labelStyle.merge(TextStyle(color = labelColor)),
+            topLeft = Offset(0f, chartH + 4.dp.toPx())
+        )
+        val lastLayout = textMeasurer.measure(data.last().first, labelStyle)
+        drawText(
+            textMeasurer = textMeasurer,
+            text = data.last().first,
+            style = labelStyle.merge(TextStyle(color = labelColor)),
+            topLeft = Offset(w - lastLayout.size.width, chartH + 4.dp.toPx())
+        )
+    }
 }
