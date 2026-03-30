@@ -1846,3 +1846,243 @@ private fun formatVolumeCompact(volume: Float, unitLabel: String): String {
         else -> "${volume.roundToInt()} $unitLabel"
     }
 }
+
+// ---------------------------------------------------------------------------
+// Muscle Volume Tracking Card
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalise raw muscle-group strings (e.g. "CHEST", "Biceps", "GLUTES")
+ * into the six canonical display groups used by the volume card.
+ */
+private fun normalizeGroup(raw: String): String = when (raw.trim().uppercase()) {
+    "CHEST" -> "Chest"
+    "BACK" -> "Back"
+    "SHOULDERS" -> "Shoulders"
+    "BICEPS", "TRICEPS", "ARMS" -> "Arms"
+    "LEGS", "GLUTES", "QUADS", "HAMSTRINGS", "CALVES" -> "Legs"
+    "CORE", "ABS" -> "Core"
+    "FULL_BODY", "FULL BODY" -> "Legs" // full-body counts toward the largest group
+    else -> raw.trim().replaceFirstChar { it.uppercase() }
+}
+
+/** Canonical ordering for the six muscle groups. */
+private val MUSCLE_GROUP_ORDER = listOf("Chest", "Back", "Shoulders", "Arms", "Legs", "Core")
+
+/**
+ * Data holder for per-muscle-group weekly set counts and zone classification.
+ */
+private data class MuscleGroupVolume(
+    val name: String,
+    val sets: Int
+) {
+    val zone: String get() = when {
+        sets >= 10 -> "Focus"
+        sets >= 5 -> "Growth"
+        else -> "Maintaining"
+    }
+
+    val zoneColor: Color get() = when {
+        sets >= 10 -> Color(0xFFD4A017)  // gold
+        sets >= 5 -> Color(0xFF4CAF50)   // green
+        else -> Color(0xFF42A5F5)        // blue
+    }
+}
+
+/**
+ * Muscle Volume Card -- per-muscle-group weekly set counts with
+ * training-zone colour indicators and filter chips.
+ *
+ * Uses [ExerciseRepository.getExerciseById] to resolve each session's
+ * exerciseId to its muscleGroups field, then counts sets with workingReps > 0
+ * in the last 7 days. Each set credits ALL of the exercise's muscle groups.
+ *
+ * @param workoutSessions All available workout sessions
+ * @param exerciseRepository Repository for exercise lookups
+ * @param modifier Optional modifier
+ */
+@Composable
+fun MuscleVolumeCard(
+    workoutSessions: List<WorkoutSession>,
+    exerciseRepository: ExerciseRepository,
+    modifier: Modifier = Modifier
+) {
+    val now = remember { KmpUtils.currentTimeMillis() }
+    val sevenDaysMs = 7L * 24 * 60 * 60 * 1000
+
+    // Last-7-day sessions with at least one working rep and a linked exercise
+    val recentSessions = remember(workoutSessions, now) {
+        workoutSessions.filter { session ->
+            session.timestamp >= (now - sevenDaysMs) &&
+                session.workingReps > 0 &&
+                session.exerciseId != null
+        }
+    }
+
+    // Resolve exercise IDs -> muscle-group lists asynchronously
+    val muscleGroupMap by produceState(
+        initialValue = emptyMap<String, List<String>>(),
+        key1 = recentSessions
+    ) {
+        val ids = recentSessions.mapNotNull { it.exerciseId }.distinct()
+        val result = mutableMapOf<String, List<String>>()
+        ids.forEach { id ->
+            val exercise = exerciseRepository.getExerciseById(id)
+            if (exercise != null) {
+                result[id] = exercise.muscleGroups
+                    .split(",")
+                    .map { normalizeGroup(it) }
+                    .distinct()
+            }
+        }
+        value = result
+    }
+
+    // Aggregate sets per canonical group
+    val groupVolumes = remember(recentSessions, muscleGroupMap) {
+        val counts = mutableMapOf<String, Int>()
+        recentSessions.forEach { session ->
+            val groups = muscleGroupMap[session.exerciseId] ?: return@forEach
+            groups.forEach { group ->
+                counts[group] = (counts[group] ?: 0) + 1
+            }
+        }
+        MUSCLE_GROUP_ORDER.map { group ->
+            MuscleGroupVolume(name = group, sets = counts[group] ?: 0)
+        }
+    }
+
+    // Filter state
+    var selectedFilter by remember { mutableStateOf("All") }
+    val filters = listOf("All") + MUSCLE_GROUP_ORDER
+
+    val displayedGroups = remember(groupVolumes, selectedFilter) {
+        if (selectedFilter == "All") groupVolumes
+        else groupVolumes.filter { it.name == selectedFilter }
+    }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = "Muscle volume: weekly sets per muscle group"
+            },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Muscle Volume",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Weekly sets per muscle group",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Filter chip row (scrollable)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                filters.forEach { filter ->
+                    FilterChip(
+                        selected = selectedFilter == filter,
+                        onClick = { selectedFilter = filter },
+                        label = {
+                            Text(
+                                text = filter,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        modifier = Modifier.height(28.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (recentSessions.isEmpty()) {
+                Text(
+                    "Complete workouts this week to see muscle volume.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 24.dp)
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    displayedGroups.forEach { group ->
+                        MuscleGroupRow(group = group)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Single row inside [MuscleVolumeCard] showing a muscle group's name,
+ * weekly set count, zone label and a 10-segment colour bar.
+ */
+@Composable
+private fun MuscleGroupRow(
+    group: MuscleGroupVolume,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Top line: name + "X of 10 weekly sets" + zone label
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = group.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "${group.sets} of 10 weekly sets",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = group.zone,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = group.zoneColor
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 10-segment bar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            val filledSegments = group.sets.coerceAtMost(10)
+            for (i in 0 until 10) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            if (i < filledSegments) group.zoneColor
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                )
+            }
+        }
+    }
+}
