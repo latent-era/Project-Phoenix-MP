@@ -276,6 +276,30 @@ class ActiveSessionEngine(
     // ===== Calculation Helpers =====
 
     /**
+     * Compute a progression suggestion based on completed reps vs target.
+     * Returns null for Just Lift mode or when no target reps are configured.
+     */
+    private fun computeProgressionSuggestion(
+        workingReps: Int,
+        targetReps: Int,
+        isJustLift: Boolean
+    ): ProgressionSuggestion? {
+        if (isJustLift || targetReps <= 0) return null
+        return when {
+            workingReps < targetReps -> ProgressionSuggestion(
+                direction = ProgressionDirection.HOLD,
+                deltaKg = 0f,
+                message = "Same weight, aim for $targetReps reps"
+            )
+            else -> ProgressionSuggestion(
+                direction = ProgressionDirection.INCREASE,
+                deltaKg = 0.5f,
+                message = "Add 0.5kg next time"
+            )
+        }
+    }
+
+    /**
      * Calculate enhanced metrics for the set summary display.
      */
     internal fun calculateSetSummaryMetrics(
@@ -1907,7 +1931,19 @@ class ActiveSessionEngine(
                 workingRepsCount = completedReps
             )
 
-            Logger.d("Set summary: heaviest=${summary.heaviestLiftKgPerCable}kg, reps=$completedReps, duration=${summary.durationMs}ms")
+            // Auto-progression: compute suggestion based on reps vs target
+            val progression = computeProgressionSuggestion(
+                workingReps = completedReps,
+                targetReps = params.reps,
+                isJustLift = isJustLift
+            )
+            val summaryWithProgression = if (progression != null) {
+                summary.copy(progressionSuggestion = progression)
+            } else {
+                summary
+            }
+
+            Logger.d("Set summary: heaviest=${summaryWithProgression.heaviestLiftKgPerCable}kg, reps=$completedReps, duration=${summaryWithProgression.durationMs}ms, progression=${progression?.direction}")
 
             val summaryCountdownSeconds = settingsManager.userPreferences.value.summaryCountdownSeconds
             val skipSummary = summaryCountdownSeconds < 0
@@ -1920,7 +1956,7 @@ class ActiveSessionEngine(
 
             if (!effectiveSkipSummary) {
                 Logger.d("handleSetCompletion: Setting state to SetSummary (effectiveSkipSummary=false)")
-                coordinator._workoutState.value = summary
+                coordinator._workoutState.value = summaryWithProgression
             } else {
                 Logger.d("handleSetCompletion: Skipping SetSummary state (effectiveSkipSummary=true, wasBodyweight=$wasBodyweight)")
             }
