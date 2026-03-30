@@ -1941,3 +1941,175 @@ fun FrequencyBarChart(
         )
     }
 }
+
+// ---------------------------------------------------------------------------
+// Volume By Exercise Card
+// ---------------------------------------------------------------------------
+
+private enum class VolumePeriod(val label: String) {
+    THIS_WEEK("This Week"),
+    THIS_MONTH("This Month"),
+    ALL_TIME("All Time")
+}
+
+/**
+ * Volume By Exercise Card -- shows horizontal progress bars per exercise
+ * for a selectable time period (This Week / This Month / All Time).
+ */
+@Composable
+fun VolumeByExerciseCard(
+    workoutSessions: List<WorkoutSession>,
+    weightUnit: WeightUnit,
+    modifier: Modifier = Modifier
+) {
+    var selectedPeriod by remember { mutableStateOf(VolumePeriod.THIS_WEEK) }
+
+    val now = remember { KmpUtils.currentTimeMillis() }
+    val oneDayMs = 24L * 60 * 60 * 1000
+
+    val volumeByExercise = remember(workoutSessions, selectedPeriod, weightUnit) {
+        val cutoff = when (selectedPeriod) {
+            VolumePeriod.THIS_WEEK -> now - 7 * oneDayMs
+            VolumePeriod.THIS_MONTH -> now - 30 * oneDayMs
+            VolumePeriod.ALL_TIME -> 0L
+        }
+
+        workoutSessions
+            .filter { it.timestamp >= cutoff && it.exerciseId != null }
+            .groupBy { it.exerciseId!! }
+            .map { (_, sessions) ->
+                val name = sessions.firstNotNullOfOrNull { it.exerciseName } ?: "Unknown"
+                val volumeKg = sessions.sumOf { it.effectiveTotalVolumeKg().toDouble() }.toFloat()
+                val displayVolume = if (weightUnit == WeightUnit.LB) volumeKg * 2.20462f else volumeKg
+                name to displayVolume
+            }
+            .sortedByDescending { it.second }
+            .take(10) // Top 10 exercises
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Volume by Exercise",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Total volume lifted per exercise",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Period selector chips
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                VolumePeriod.entries.forEach { period ->
+                    FilterChip(
+                        selected = selectedPeriod == period,
+                        onClick = { selectedPeriod = period },
+                        label = {
+                            Text(
+                                period.label,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (volumeByExercise.isEmpty()) {
+                Text(
+                    "No exercise data for this period.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 24.dp)
+                )
+            } else {
+                val maxVolume = volumeByExercise.maxOf { it.second }
+                val unitLabel = if (weightUnit == WeightUnit.LB) "lb" else "kg"
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    volumeByExercise.forEach { (name, volume) ->
+                        ExerciseVolumeRow(
+                            exerciseName = name,
+                            volume = volume,
+                            maxVolume = maxVolume,
+                            unitLabel = unitLabel
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A single row showing exercise name, horizontal progress bar, and volume.
+ */
+@Composable
+private fun ExerciseVolumeRow(
+    exerciseName: String,
+    volume: Float,
+    maxVolume: Float,
+    unitLabel: String,
+    modifier: Modifier = Modifier
+) {
+    val fraction = if (maxVolume > 0f) (volume / maxVolume).coerceIn(0f, 1f) else 0f
+    val barColor = MaterialTheme.colorScheme.primary
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = exerciseName,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = formatVolumeCompact(volume, unitLabel),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        LinearProgressIndicator(
+            progress = { fraction },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp)),
+            color = barColor,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    }
+}
+
+/**
+ * Format volume into a compact human-readable string.
+ */
+private fun formatVolumeCompact(volume: Float, unitLabel: String): String {
+    return when {
+        volume >= 1_000_000 -> "${formatOneDecimal(volume / 1_000_000f)}M $unitLabel"
+        volume >= 1_000 -> "${formatOneDecimal(volume / 1_000f)}k $unitLabel"
+        else -> "${volume.roundToInt()} $unitLabel"
+    }
+}
