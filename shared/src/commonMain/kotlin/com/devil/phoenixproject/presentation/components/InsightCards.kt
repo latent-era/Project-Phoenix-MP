@@ -47,6 +47,17 @@ import kotlin.math.roundToInt
  */
 
 /**
+ * Count real workouts from a list of sessions.
+ * Sets sharing the same routineSessionId count as 1 workout.
+ * Sets without a routineSessionId count as 1 workout each.
+ */
+internal fun countRealWorkouts(sessions: List<WorkoutSession>): Int {
+    val (withRoutine, withoutRoutine) = sessions.partition { it.routineSessionId != null }
+    val routineWorkouts = withRoutine.mapNotNull { it.routineSessionId }.distinct().size
+    return routineWorkouts + withoutRoutine.size
+}
+
+/**
  * Week-over-week summary data
  */
 private data class WeekSummary(
@@ -98,7 +109,7 @@ fun ThisWeekSummaryCard(
         }
 
         val thisWeekSummary = WeekSummary(
-            workouts = thisWeekSessions.size,
+            workouts = countRealWorkouts(thisWeekSessions),
             totalVolume = thisWeekSessions.sumOf {
                 it.effectiveTotalVolumeKg().toDouble()
             }.toFloat(),
@@ -107,7 +118,7 @@ fun ThisWeekSummaryCard(
         )
 
         val lastWeekSummary = WeekSummary(
-            workouts = lastWeekSessions.size,
+            workouts = countRealWorkouts(lastWeekSessions),
             totalVolume = lastWeekSessions.sumOf {
                 it.effectiveTotalVolumeKg().toDouble()
             }.toFloat(),
