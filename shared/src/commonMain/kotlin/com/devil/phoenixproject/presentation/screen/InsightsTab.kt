@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devil.phoenixproject.data.repository.ExerciseRepository
 import com.devil.phoenixproject.domain.model.PersonalRecord
 import com.devil.phoenixproject.domain.model.WeightUnit
 import com.devil.phoenixproject.domain.model.WorkoutSession
@@ -54,6 +55,7 @@ private fun ResponsiveCardWrapper(
 fun InsightsTab(
     prs: List<PersonalRecord>,
     workoutSessions: List<WorkoutSession>,
+    exerciseRepository: ExerciseRepository,
     modifier: Modifier = Modifier,
     weightUnit: WeightUnit = WeightUnit.KG
 ) {
@@ -124,6 +126,19 @@ fun InsightsTab(
                     VolumeByExerciseCard(
                         workoutSessions = workoutSessions,
                         weightUnit = weightUnit,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        // 5. Muscle Volume Card - per-muscle-group weekly set counts
+        if (workoutSessions.any { it.exerciseId != null }) {
+            item {
+                ResponsiveCardWrapper {
+                    MuscleVolumeCard(
+                        workoutSessions = workoutSessions,
+                        exerciseRepository = exerciseRepository,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

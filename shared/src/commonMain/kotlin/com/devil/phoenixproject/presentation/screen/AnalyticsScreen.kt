@@ -389,6 +389,7 @@ fun AnalyticsScreen(
                     0 -> InsightsTab(
                         prs = personalRecords,
                         workoutSessions = workoutHistory,
+                        exerciseRepository = viewModel.exerciseRepository,
                         weightUnit = weightUnit,
                         modifier = Modifier.fillMaxSize()
                     )
